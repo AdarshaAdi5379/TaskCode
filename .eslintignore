@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Production build
+.next/
+dist/
+build/
+out/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Misc
+.git/
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Cache
+.cache/
+.eslintcache
+
+# Lock files
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# OS
+Thumbs.db
+.DS_Store

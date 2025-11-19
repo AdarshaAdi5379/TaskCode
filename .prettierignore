@@ -1,0 +1,25 @@
+# Ignore files
+node_modules
+.next
+dist
+build
+.env
+.env.local
+.env.*.local
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+coverage
+.DS_Store
+*.log
+
+# Git files
+.git
+.gitignore
+
+# IDE files
+.idea
+.vscode
+*.swp
+*.swo
+*~

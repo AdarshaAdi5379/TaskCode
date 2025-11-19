@@ -1,0 +1,111 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+.nyc_output/
+
+# Production build files
+.next/
+out/
+dist/
+build/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.production.local
+.env.development.local
+.env.test.local
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+.editorconfig
+*.iml
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# OS-specific
+Thumbs.db
+.Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Next.js specific
+.next/
+*.tsbuildinfo
+next-env.d.ts
+.env.local.swp
+
+# Turbopack
+.turbo/
+turbo.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Cache
+.cache/
+.eslintcache
+.stylelintcache
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Package managers
+package-lock.json.swp
+yarn.lock.swp
+pnpm-lock.yaml.swp
+
+# Local development
+.env.local
+.env.*.local
+!.env.example
+
+# Debugging
+debug.log
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# PNPM
+pnpm-lock.yaml
+
+# Miscellaneous
+.env.*.local
+.vscode-test
+.vscode settings.json
+site
