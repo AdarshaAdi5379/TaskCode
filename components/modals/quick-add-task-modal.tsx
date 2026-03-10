@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,11 +19,23 @@ interface QuickAddTaskModalProps {
 export function QuickAddTaskModal({ open, onOpenChange }: QuickAddTaskModalProps) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [projectId, setProjectId] = useState("")
+  const [projectId, setProjectId] = useState<string>("")
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium")
   const [isLoading, setIsLoading] = useState(false)
   const { addTask } = useTaskContext()
   const { projects } = useProjectContext()
+
+  useEffect(() => {
+    if (open && projects.length > 0 && !projectId) {
+      setProjectId(projects[0].id)
+    }
+    if (!open) {
+      setTitle("")
+      setDescription("")
+      setProjectId("")
+      setPriority("medium")
+    }
+  }, [open, projects, projectId])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -75,18 +87,22 @@ export function QuickAddTaskModal({ open, onOpenChange }: QuickAddTaskModalProps
           {/* Project Selection */}
           <div className="space-y-2">
             <Label htmlFor="project-select">Project</Label>
-            <Select value={projectId} onValueChange={setProjectId} disabled={isLoading}>
-              <SelectTrigger id="project-select">
-                <SelectValue placeholder="Select a project" />
-              </SelectTrigger>
-              <SelectContent>
-                {projects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    {project.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {projects.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-2">No projects available. Create a project first.</p>
+            ) : (
+              <Select value={projectId} onValueChange={setProjectId} disabled={isLoading}>
+                <SelectTrigger id="project-select">
+                  <SelectValue placeholder="Select a project" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           {/* Priority */}
@@ -121,7 +137,7 @@ export function QuickAddTaskModal({ open, onOpenChange }: QuickAddTaskModalProps
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading || !title.trim() || !projectId}>
+            <Button type="submit" disabled={isLoading || !title.trim() || !projectId || projects.length === 0}>
               {isLoading ? "Creating..." : "Create Task"}
             </Button>
           </div>

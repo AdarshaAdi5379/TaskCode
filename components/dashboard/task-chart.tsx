@@ -2,18 +2,45 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
-
-const data = [
-  { name: "Mon", completed: 4, pending: 5 },
-  { name: "Tue", completed: 6, pending: 3 },
-  { name: "Wed", completed: 5, pending: 4 },
-  { name: "Thu", completed: 8, pending: 2 },
-  { name: "Fri", completed: 7, pending: 3 },
-  { name: "Sat", completed: 3, pending: 2 },
-  { name: "Sun", completed: 2, pending: 1 },
-]
+import { useTaskContext } from "@/lib/task-context"
 
 export function TaskChart() {
+  const { tasks } = useTaskContext()
+
+  const getTasksByDay = () => {
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    const today = new Date()
+    const result: { name: string; completed: number; pending: number }[] = []
+
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today)
+      date.setDate(date.getDate() - i)
+      const dayName = days[date.getDay()]
+      const dateString = date.toDateString()
+
+      const completed = tasks.filter(
+        (task) => task.status === "done" && new Date(task.createdAt).toDateString() === dateString,
+      ).length
+      const pending = tasks.filter(
+        (task) => task.status !== "done" && new Date(task.createdAt).toDateString() === dateString,
+      ).length
+
+      result.push({ name: dayName, completed, pending })
+    }
+
+    return result
+  }
+
+  const data = tasks.length > 0 ? getTasksByDay() : [
+    { name: "Mon", completed: 0, pending: 0 },
+    { name: "Tue", completed: 0, pending: 0 },
+    { name: "Wed", completed: 0, pending: 0 },
+    { name: "Thu", completed: 0, pending: 0 },
+    { name: "Fri", completed: 0, pending: 0 },
+    { name: "Sat", completed: 0, pending: 0 },
+    { name: "Sun", completed: 0, pending: 0 },
+  ]
+
   return (
     <Card className="col-span-full lg:col-span-2">
       <CardHeader>
@@ -33,8 +60,8 @@ export function TaskChart() {
               }}
             />
             <Legend />
-            <Bar dataKey="completed" stackId="a" fill="hsl(var(--color-chart-2))" />
-            <Bar dataKey="pending" stackId="a" fill="hsl(var(--color-chart-3))" />
+            <Bar dataKey="completed" stackId="a" fill="hsl(var(--color-chart-2))" name="Completed" />
+            <Bar dataKey="pending" stackId="a" fill="hsl(var(--color-chart-3))" name="Pending" />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

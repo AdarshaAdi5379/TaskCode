@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -35,6 +36,7 @@ const priorityStyles: Record<string, string> = {
 export function KanbanView({ projectId }: KanbanViewProps) {
   const { getTasksByProject, updateTask } = useTaskContext()
   const projectTasks = getTasksByProject(projectId)
+  const [draggedTask, setDraggedTask] = useState<{ taskId: string; sourceStatus: string } | null>(null)
 
   const columns: Record<string, { title: string; color: string }> = {
     todo: { title: "To Do", color: "bg-slate-50 dark:bg-slate-900" },
@@ -44,6 +46,21 @@ export function KanbanView({ projectId }: KanbanViewProps) {
 
   const getTasksByStatusType = (status: "todo" | "in-progress" | "done") => {
     return projectTasks.filter((task) => task.status === status)
+  }
+
+  const handleDragStart = (taskId: string, status: string) => {
+    setDraggedTask({ taskId, sourceStatus: status })
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+  }
+
+  const handleDrop = (newStatus: "todo" | "in-progress" | "done") => {
+    if (draggedTask && draggedTask.sourceStatus !== newStatus) {
+      updateTask(draggedTask.taskId, { status: newStatus })
+    }
+    setDraggedTask(null)
   }
 
   const handleStatusChange = (taskId: string, newStatus: "todo" | "in-progress" | "done") => {
@@ -58,7 +75,11 @@ export function KanbanView({ projectId }: KanbanViewProps) {
           return (
             <div
               key={statusKey}
-              className={`flex w-80 flex-col rounded-lg border border-border bg-muted/30 p-4 ${color}`}
+              className={`flex w-80 flex-col rounded-lg border border-border bg-muted/30 p-4 ${color} ${
+                draggedTask ? "transition-colors" : ""
+              }`}
+              onDragOver={handleDragOver}
+              onDrop={() => handleDrop(statusKey as "todo" | "in-progress" | "done")}
             >
               {/* Column Header */}
               <div className="mb-4 flex items-center justify-between">
@@ -71,7 +92,13 @@ export function KanbanView({ projectId }: KanbanViewProps) {
               {/* Tasks */}
               <div className="space-y-3 flex-1">
                 {statusTasks.map((task) => (
-                  <Card key={task.id} className="cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow">
+                  <Card
+                    key={task.id}
+                    className="cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
+                    draggable
+                    onDragStart={() => handleDragStart(task.id, task.status)}
+                    onDragEnd={() => setDraggedTask(null)}
+                  >
                     <CardContent className="p-3 space-y-2">
                       <div className="flex items-start gap-2">
                         <button

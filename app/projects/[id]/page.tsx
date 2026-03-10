@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, use } from "react"
 import { MainLayout } from "@/components/layout/main-layout"
 import { TaskModal } from "@/components/tasks/task-modal"
 import { TaskList } from "@/components/tasks/task-list"
@@ -11,8 +11,9 @@ import { Plus, LayoutList, Grid3x3, Calendar } from "lucide-react"
 import { useProjectContext } from "@/lib/project-context"
 import { CalendarView } from "@/components/tasks/calendar-view"
 
-export default function ProjectPage({ params }: { params: { id: string } }) {
-  const { id: projectId } = params
+export default function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params)
+  const { id: projectId } = resolvedParams
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [activeView, setActiveView] = useState("list")
   const { getProject } = useProjectContext()
@@ -21,55 +22,67 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
 
   return (
     <MainLayout>
-      <div className="flex-1 space-y-6 p-4 md:p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">{project?.name || "Project"}</h1>
-            <p className="text-muted-foreground">{project?.description || "Project workspace"}</p>
+      {!project ? (
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold tracking-tight">Project Not Found</h1>
+            <p className="text-muted-foreground mt-2">This project may have been deleted or doesn't exist.</p>
+            <Button asChild className="mt-4">
+              <a href="/">Go to Dashboard</a>
+            </Button>
           </div>
-          <Button onClick={() => setIsModalOpen(true)} className="gap-2 bg-primary hover:bg-primary/90">
-            <Plus className="h-4 w-4" />
-            New Task
-          </Button>
         </div>
+      ) : (
+        <div className="flex-1 space-y-6 p-4 md:p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
+              <p className="text-muted-foreground">{project.description || "Project workspace"}</p>
+            </div>
+            <Button onClick={() => setIsModalOpen(true)} className="gap-2 bg-primary hover:bg-primary/90">
+              <Plus className="h-4 w-4" />
+              New Task
+            </Button>
+          </div>
 
-        {/* View Tabs */}
-        <Tabs value={activeView} onValueChange={setActiveView}>
-          <TabsList className="grid w-full max-w-xs grid-cols-3">
-            <TabsTrigger value="list" className="gap-2">
-              <LayoutList className="h-4 w-4" />
-              <span className="hidden sm:inline">List</span>
-            </TabsTrigger>
-            <TabsTrigger value="kanban" className="gap-2">
-              <Grid3x3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Kanban</span>
-            </TabsTrigger>
-            <TabsTrigger value="calendar" className="gap-2">
-              <Calendar className="h-4 w-4" />
-              <span className="hidden sm:inline">Calendar</span>
-            </TabsTrigger>
-          </TabsList>
+          {/* View Tabs */}
+          <Tabs value={activeView} onValueChange={setActiveView}>
+            <TabsList className="grid w-full max-w-xs grid-cols-3">
+              <TabsTrigger value="list" className="gap-2">
+                <LayoutList className="h-4 w-4" />
+                <span className="hidden sm:inline">List</span>
+              </TabsTrigger>
+              <TabsTrigger value="kanban" className="gap-2">
+                <Grid3x3 className="h-4 w-4" />
+                <span className="hidden sm:inline">Kanban</span>
+              </TabsTrigger>
+              <TabsTrigger value="calendar" className="gap-2">
+                <Calendar className="h-4 w-4" />
+                <span className="hidden sm:inline">Calendar</span>
+              </TabsTrigger>
+            </TabsList>
 
-          {/* List View */}
-          <TabsContent value="list" className="mt-6">
-            <TaskList projectId={projectId} />
-          </TabsContent>
+            {/* List View */}
+            <TabsContent value="list" className="mt-6">
+              <TaskList projectId={projectId} />
+            </TabsContent>
 
-          {/* Kanban View */}
-          <TabsContent value="kanban" className="mt-6">
-            <KanbanView projectId={projectId} />
-          </TabsContent>
+            {/* Kanban View */}
+            <TabsContent value="kanban" className="mt-6">
+              <KanbanView projectId={projectId} />
+            </TabsContent>
 
-          {/* Calendar View */}
-          <TabsContent value="calendar" className="mt-6">
-            <CalendarView projectId={projectId} />
-          </TabsContent>
-        </Tabs>
-      </div>
+            {/* Calendar View */}
+            <TabsContent value="calendar" className="mt-6">
+              <CalendarView projectId={projectId} />
+            </TabsContent>
+          </Tabs>
+        </div>
+      )}
 
       {/* Task Modal */}
-      <TaskModal open={isModalOpen} onOpenChange={setIsModalOpen} projectId={projectId} />
+      {project && <TaskModal open={isModalOpen} onOpenChange={setIsModalOpen} projectId={projectId} />}
     </MainLayout>
   )
 }

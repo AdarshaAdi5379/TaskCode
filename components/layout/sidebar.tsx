@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useProjectContext } from "@/lib/project-context"
+import { useTaskContext } from "@/lib/task-context"
 import { QuickAddProjectModal } from "@/components/modals/quick-add-project-modal"
 import { QuickAddTaskModal } from "@/components/modals/quick-add-task-modal"
 
@@ -21,6 +22,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const [showProjectModal, setShowProjectModal] = useState(false)
   const [showTaskModal, setShowTaskModal] = useState(false)
   const { projects, deleteProject } = useProjectContext()
+  const { deleteTask, getTasksByProject } = useTaskContext()
 
   const toggleProjects = () => {
     setExpandedProjects(!expandedProjects)
@@ -29,7 +31,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const handleDeleteProject = (projectId: string, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (confirm("Are you sure you want to delete this project?")) {
+    if (confirm("Are you sure you want to delete this project? All tasks in this project will also be deleted.")) {
+      const projectTasks = getTasksByProject(projectId)
+      projectTasks.forEach((task) => deleteTask(task.id))
       deleteProject(projectId)
     }
   }
