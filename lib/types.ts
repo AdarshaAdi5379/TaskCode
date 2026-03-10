@@ -1,3 +1,19 @@
+export interface SubTask {
+  id: string
+  title: string
+  isCompleted: boolean
+  completedAt?: Date
+}
+
+export interface Comment {
+  id: string
+  userId: string
+  userName: string
+  content: string
+  createdAt: Date
+  mentions: string[]
+}
+
 export interface Task {
   id: string
   title: string
@@ -9,6 +25,43 @@ export interface Task {
   labels: string[]
   projectId: string
   createdAt: Date
+  updatedAt?: Date
+  
+  // Sub-task hierarchy
+  parentId?: string
+  subtasks: SubTask[]
+  
+  // Soft delete & snooze
+  isSoftDeleted: boolean
+  deletedAt?: Date
+  snoozedUntil?: string
+  
+  // Completion tracking
+  isCompleted: boolean
+  completedAt?: Date
+  completedBy?: string
+  assignedBy?: string
+  
+  // Comments & collaboration
+  comments: Comment[]
+  tags: string[]
+  
+  // Reminder
+  reminder?: string
+}
+
+export interface ProjectSettings {
+  defaultPriority: Task["priority"]
+  defaultStatus: Task["status"]
+  autoCompleteSubtasks: boolean
+}
+
+export interface ProjectMember {
+  userId: string
+  email: string
+  name: string
+  role: "owner" | "admin" | "member"
+  joinedAt: Date
 }
 
 export interface Project {
@@ -17,21 +70,66 @@ export interface Project {
   color: string
   description: string
   createdAt: Date
+  updatedAt?: Date
+  isArchived: boolean
+  ownerId: string
+  members: ProjectMember[]
+  settings: ProjectSettings
+}
+
+export interface ActivityLog {
+  id: string
+  projectId: string
+  taskId?: string
+  userId: string
+  userName: string
+  action: "created" | "updated" | "deleted" | "completed" | "assigned" | "commented" | "restored"
+  details: string
+  createdAt: Date
+}
+
+export type TaskSortBy = "priority" | "dueDate" | "createdAt" | "status" | "title"
+export type TaskFilter = {
+  status?: Task["status"]
+  priority?: Task["priority"]
+  assignee?: string
+  dueDate?: "overdue" | "today" | "upcoming" | "none"
 }
 
 export interface TaskContextType {
   tasks: Task[]
-  addTask: (task: Omit<Task, "id" | "createdAt">) => void
+  addTask: (task: Omit<Task, "id" | "createdAt" | "updatedAt" | "isSoftDeleted" | "deletedAt" | "subtasks" | "isCompleted" | "completedAt" | "comments">) => void
   updateTask: (id: string, updates: Partial<Task>) => void
   deleteTask: (id: string) => void
+  softDeleteTask: (id: string) => void
+  restoreTask: (id: string) => void
+  permanentDeleteTask: (id: string) => void
+  snoozeTask: (id: string, until: string) => void
   getTasksByProject: (projectId: string) => Task[]
   getTasksByStatus: (status: Task["status"]) => Task[]
+  getActiveTasks: () => Task[]
+  getTrashedTasks: () => Task[]
+  getSnoozedTasks: () => Task[]
+  createSubTask: (parentTaskId: string, title: string) => void
+  updateSubTask: (parentTaskId: string, subtaskId: string, updates: Partial<SubTask>) => void
+  deleteSubTask: (parentTaskId: string, subtaskId: string) => void
+  toggleSubTask: (parentTaskId: string, subtaskId: string) => void
+  addComment: (taskId: string, comment: Omit<Comment, "id" | "createdAt">) => void
+  deleteComment: (taskId: string, commentId: string) => void
 }
 
 export interface ProjectContextType {
   projects: Project[]
-  addProject: (project: Omit<Project, "id" | "createdAt">) => void
+  addProject: (project: Omit<Project, "id" | "createdAt" | "updatedAt" | "isArchived" | "members" | "settings">) => void
   updateProject: (id: string, updates: Partial<Project>) => void
   deleteProject: (id: string) => void
   getProject: (id: string) => Project | undefined
+  getActiveProjects: () => Project[]
+  archiveProject: (id: string) => void
+  restoreProject: (id: string) => void
+  inviteMember: (projectId: string, email: string, name: string, role: ProjectMember["role"]) => void
+  removeMember: (projectId: string, userId: string) => void
+  updateMemberRole: (projectId: string, userId: string, role: ProjectMember["role"]) => void
+  isMember: (projectId: string, userId: string) => boolean
+  isOwner: (projectId: string, userId: string) => boolean
 }

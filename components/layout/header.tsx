@@ -26,9 +26,14 @@ export function Header({ onSidebarToggle, sidebarOpen }: HeaderProps) {
   const { theme, setTheme } = useTheme()
   const [searchValue, setSearchValue] = useState("")
   const [showResults, setShowResults] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
   const { tasks } = useTaskContext()
   const { projects } = useProjectContext()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const filteredTasks = searchValue.trim()
     ? tasks.filter(
@@ -132,14 +137,16 @@ export function Header({ onSidebarToggle, sidebarOpen }: HeaderProps) {
         {/* Right: Theme + Notifications + User */}
         <div className="flex items-center gap-2">
           {/* Theme Toggle */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            aria-label="Toggle theme"
-          >
-            {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </Button>
+          {mounted && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              aria-label="Toggle theme"
+            >
+              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </Button>
+          )}
 
           {/* Notifications */}
           <Button variant="ghost" size="icon" aria-label="Notifications">
