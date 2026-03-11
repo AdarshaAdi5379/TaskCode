@@ -111,6 +111,27 @@ export interface User {
   settings: UserSettings
 }
 
+export interface Notification {
+  id: string
+  type: "task_assigned" | "task_completed" | "mention" | "comment" | "project_invite"
+  title: string
+  message: string
+  projectId?: string
+  taskId?: string
+  isRead: boolean
+  createdAt: Date
+}
+
+export interface NotificationContextType {
+  notifications: Notification[]
+  unreadCount: number
+  addNotification: (notification: Omit<Notification, "id" | "isRead" | "createdAt">) => void
+  markAsRead: (id: string) => void
+  markAllAsRead: () => void
+  deleteNotification: (id: string) => void
+  clearAll: () => void
+}
+
 export interface UserContextType {
   user: User | null
   isAuthenticated: boolean

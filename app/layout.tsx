@@ -6,6 +6,7 @@ import { ThemeProvider } from "next-themes"
 import { TaskProvider } from "@/lib/task-context"
 import { ProjectProvider } from "@/lib/project-context"
 import { UserProvider } from "@/lib/user-context"
+import { NotificationProvider } from "@/lib/notification-context"
 
 export const metadata: Metadata = {
   title: "TaskZen - Project Management",
@@ -40,12 +41,14 @@ export default function RootLayout({
       <body className={`font-sans antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <UserProvider>
-            <ProjectProvider>
-              <TaskProvider>
-                {children}
-                <Analytics />
-              </TaskProvider>
-            </ProjectProvider>
+            <NotificationProvider>
+              <ProjectProvider>
+                <TaskProvider>
+                  {children}
+                  <Analytics />
+                </TaskProvider>
+              </ProjectProvider>
+            </NotificationProvider>
           </UserProvider>
         </ThemeProvider>
       </body>

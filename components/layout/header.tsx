@@ -17,6 +17,7 @@ import { useTaskContext } from "@/lib/task-context"
 import { useProjectContext } from "@/lib/project-context"
 import { useUserContext } from "@/lib/user-context"
 import { UserProfileModal } from "@/components/modals/user-profile-modal"
+import { NotificationDropdown } from "./notification-dropdown"
 import Link from "next/link"
 
 interface HeaderProps {
@@ -153,9 +154,7 @@ export function Header({ onSidebarToggle, sidebarOpen }: HeaderProps) {
           )}
 
           {/* Notifications */}
-          <Button variant="ghost" size="icon" aria-label="Notifications">
-            <Bell className="h-5 w-5" />
-          </Button>
+          <NotificationDropdown />
 
           {/* User Menu */}
           <DropdownMenu>

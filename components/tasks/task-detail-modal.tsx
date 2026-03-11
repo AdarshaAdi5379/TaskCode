@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, use } from "react"
-import { X, Calendar, Users, Tag, Flag, CheckCircle2, MessageSquare, Plus, Send, Trash2 } from "lucide-react"
+import { useState, useRef, useEffect } from "react"
+import { Calendar, Flag, CheckCircle2, MessageSquare, Send, Trash2, AtSign } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -11,7 +11,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useTaskContext } from "@/lib/task-context"
 import { useUserContext } from "@/lib/user-context"
-import type { Task } from "@/lib/types"
+import { useProjectContext } from "@/lib/project-context"
+import { useNotificationContext } from "@/lib/notification-context"
+import type { Task, ProjectMember } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 interface TaskDetailModalProps {
@@ -28,11 +30,74 @@ const priorityColors: Record<string, string> = {
 }
 
 export function TaskDetailModal({ open, onOpenChange, taskId }: TaskDetailModalProps) {
-  const { tasks, updateTask, addComment, deleteComment } = useTaskContext()
+  const { tasks, updateTask, addComment, deleteComment, toggleSubTask } = useTaskContext()
   const { user } = useUserContext()
+  const { projects } = useProjectContext()
+  const { addNotification } = useNotificationContext()
   const [newComment, setNewComment] = useState("")
+  const [showMentionPopup, setShowMentionPopup] = useState(false)
+  const [mentionQuery, setMentionQuery] = useState("")
+  const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 })
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
+  const [editingContent, setEditingContent] = useState("")
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   
   const task = tasks.find((t) => t.id === taskId)
+  const project = task ? projects.find((p) => p.id === task.projectId) : null
+  const projectMembers: ProjectMember[] = project?.members || []
+
+  const filteredMembers = mentionQuery
+    ? projectMembers.filter((m) => 
+        m.name.toLowerCase().includes(mentionQuery.toLowerCase()) ||
+        m.email.toLowerCase().includes(mentionQuery.toLowerCase())
+      )
+    : projectMembers
+
+  useEffect(() => {
+    if (!open) {
+      setNewComment("")
+      setShowMentionPopup(false)
+      setEditingCommentId(null)
+    }
+  }, [open])
+
+  const handleCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value
+    const cursorPos = e.target.selectionStart
+    const textBeforeCursor = value.slice(0, cursorPos)
+    const mentionMatch = textBeforeCursor.match(/@(\w*)$/)
+
+    if (mentionMatch) {
+      setMentionQuery(mentionMatch[1])
+      setShowMentionPopup(true)
+      
+      if (textareaRef.current) {
+        const rect = textareaRef.current.getBoundingClientRect()
+        setMentionPosition({
+          top: rect.top + 100,
+          left: rect.left + 20,
+        })
+      }
+    } else {
+      setShowMentionPopup(false)
+    }
+
+    setNewComment(value)
+  }
+
+  const insertMention = (member: ProjectMember) => {
+    const cursorPos = textareaRef.current?.selectionStart || 0
+    const textBeforeCursor = newComment.slice(0, cursorPos)
+    const textAfterCursor = newComment.slice(cursorPos)
+    const mentionStart = textBeforeCursor.lastIndexOf("@")
+    
+    const newText = textBeforeCursor.slice(0, mentionStart) + `@${member.name} ` + textAfterCursor
+    setNewComment(newText)
+    setShowMentionPopup(false)
+    setMentionQuery("")
+    
+    textareaRef.current?.focus()
+  }
 
   const handleAddComment = () => {
     if (!newComment.trim() || !task || !user) return
@@ -51,11 +116,61 @@ export function TaskDetailModal({ open, onOpenChange, taskId }: TaskDetailModalP
       mentions,
     })
 
+    if (mentions.length > 0) {
+      mentions.forEach((mentionName) => {
+        const mentionedMember = projectMembers.find(
+          (m) => m.name.toLowerCase() === mentionName.toLowerCase()
+        )
+        if (mentionedMember && mentionedMember.userId !== user.id) {
+          addNotification({
+            type: "mention",
+            title: "You were mentioned",
+            message: `${user.displayName} mentioned you in "${task.title}"`,
+            projectId: task.projectId,
+            taskId: task.id,
+          })
+        }
+      })
+    }
+
     setNewComment("")
   }
 
+  const handleUpdateComment = (commentId: string) => {
+    if (!task || !editingContent.trim()) return
+
+    const oldComment = task.comments.find((c) => c.id === commentId)
+    if (!oldComment) return
+
+    const mentions: string[] = []
+    const mentionRegex = /@(\w+)/g
+    let match
+    while ((match = mentionRegex.exec(editingContent)) !== null) {
+      mentions.push(match[1])
+    }
+
+    const updatedComments = task.comments.map((c) =>
+      c.id === commentId
+        ? { ...c, content: editingContent.trim(), mentions }
+        : c
+    )
+    updateTask(task.id, { comments: updatedComments })
+    setEditingCommentId(null)
+    setEditingContent("")
+  }
+
+  const startEditing = (commentId: string, content: string) => {
+    setEditingCommentId(commentId)
+    setEditingContent(content)
+  }
+
+  const cancelEditing = () => {
+    setEditingCommentId(null)
+    setEditingContent("")
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey && !showMentionPopup) {
       e.preventDefault()
       handleAddComment()
     }
@@ -85,7 +200,6 @@ export function TaskDetailModal({ open, onOpenChange, taskId }: TaskDetailModalP
           </TabsList>
 
           <TabsContent value="details" className="space-y-4 mt-4">
-            {/* Description */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Description</label>
               <textarea
@@ -96,7 +210,6 @@ export function TaskDetailModal({ open, onOpenChange, taskId }: TaskDetailModalP
               />
             </div>
 
-            {/* Status */}
             <div className="space-y-2">
               <label className="text-sm font-medium flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4" />
@@ -114,7 +227,6 @@ export function TaskDetailModal({ open, onOpenChange, taskId }: TaskDetailModalP
               </Select>
             </div>
 
-            {/* Priority */}
             <div className="space-y-2">
               <label className="text-sm font-medium flex items-center gap-2">
                 <Flag className="h-4 w-4" />
@@ -133,7 +245,6 @@ export function TaskDetailModal({ open, onOpenChange, taskId }: TaskDetailModalP
               </Select>
             </div>
 
-            {/* Due Date */}
             <div className="space-y-2">
               <label className="text-sm font-medium flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
@@ -146,7 +257,6 @@ export function TaskDetailModal({ open, onOpenChange, taskId }: TaskDetailModalP
               />
             </div>
 
-            {/* Subtasks */}
             {task.subtasks && task.subtasks.length > 0 && (
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2">
@@ -156,7 +266,7 @@ export function TaskDetailModal({ open, onOpenChange, taskId }: TaskDetailModalP
                 <div className="space-y-2">
                   {task.subtasks.map((subtask) => (
                     <div key={subtask.id} className="flex items-center gap-2 rounded border p-2">
-                      <button onClick={() => {}}>
+                      <button onClick={() => toggleSubTask(task.id, subtask.id)}>
                         {subtask.isCompleted ? (
                           <CheckCircle2 className="h-4 w-4 text-green-500" />
                         ) : (
@@ -175,21 +285,45 @@ export function TaskDetailModal({ open, onOpenChange, taskId }: TaskDetailModalP
 
           <TabsContent value="comments" className="mt-4">
             <div className="space-y-4">
-              {/* Add Comment */}
               <div className="flex gap-2">
                 <Avatar className="h-8 w-8">
                   <AvatarFallback>{user?.displayName?.slice(0, 2).toUpperCase() || "U"}</AvatarFallback>
                 </Avatar>
-                <div className="flex-1 space-y-2">
+                <div className="flex-1 space-y-2 relative">
                   <textarea
+                    ref={textareaRef}
                     value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
+                    onChange={handleCommentChange}
                     onKeyDown={handleKeyDown}
-                    placeholder="Write a comment... (use @mention to mention someone)"
+                    placeholder="Write a comment... (type @ to mention someone)"
                     className="min-h-20 rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring w-full"
                   />
-                  <div className="flex justify-between">
-                    <p className="text-xs text-muted-foreground">Press Enter to send, Shift+Enter for new line</p>
+                  
+                  {showMentionPopup && filteredMembers.length > 0 && (
+                    <div className="absolute z-50 w-64 bg-popover border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {filteredMembers.map((member) => (
+                        <button
+                          key={member.userId}
+                          onClick={() => insertMention(member)}
+                          className="flex items-center gap-2 w-full px-3 py-2 hover:bg-muted text-left"
+                        >
+                          <Avatar className="h-6 w-6">
+                            <AvatarFallback className="text-xs">{member.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{member.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{member.email}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-between items-center">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <AtSign className="h-3 w-3" />
+                      Type @ to mention someone
+                    </p>
                     <Button size="sm" onClick={handleAddComment} disabled={!newComment.trim()}>
                       <Send className="h-4 w-4 mr-1" />
                       Send
@@ -198,7 +332,6 @@ export function TaskDetailModal({ open, onOpenChange, taskId }: TaskDetailModalP
                 </div>
               </div>
 
-              {/* Comments List */}
               <div className="space-y-4 pt-4">
                 {task.comments.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">No comments yet</p>
@@ -218,24 +351,58 @@ export function TaskDetailModal({ open, onOpenChange, taskId }: TaskDetailModalP
                                 {new Date(comment.createdAt).toLocaleString()}
                               </span>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => deleteComment(task.id, comment.id)}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                          <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
-                          {comment.mentions.length > 0 && (
-                            <div className="flex gap-1 mt-1">
-                              {comment.mentions.map((mention) => (
-                                <Badge key={mention} variant="secondary" className="text-xs">
-                                  @{mention}
-                                </Badge>
-                              ))}
+                            <div className="flex items-center gap-1">
+                              {editingCommentId === comment.id ? (
+                                <>
+                                  <Button size="sm" variant="ghost" onClick={() => handleUpdateComment(comment.id)}>
+                                    Save
+                                  </Button>
+                                  <Button size="sm" variant="ghost" onClick={cancelEditing}>
+                                    Cancel
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={() => startEditing(comment.id, comment.content)}
+                                  >
+                                    <span className="text-xs">Edit</span>
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={() => deleteComment(task.id, comment.id)}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </>
+                              )}
                             </div>
+                          </div>
+                          {editingCommentId === comment.id ? (
+                            <textarea
+                              value={editingContent}
+                              onChange={(e) => setEditingContent(e.target.value)}
+                              className="w-full min-h-16 rounded-md border border-input bg-background px-2 py-1 text-sm"
+                              autoFocus
+                            />
+                          ) : (
+                            <>
+                              <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
+                              {comment.mentions.length > 0 && (
+                                <div className="flex gap-1 mt-1">
+                                  {comment.mentions.map((mention) => (
+                                    <Badge key={mention} variant="secondary" className="text-xs">
+                                      @{mention}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
