@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Plus, LayoutList, Grid3x3, Calendar, Users, Activity, UserPlus, Trash2, MoreHorizontal, Crown, Shield, User } from "lucide-react"
+import { Plus, LayoutList, Grid3x3, Calendar, Users, Activity, UserPlus, Trash2, MoreHorizontal, Crown, Shield, User, ArrowLeft, Home } from "lucide-react"
 import { useProjectContext } from "@/lib/project-context"
 import { useTaskContext } from "@/lib/task-context"
 import { useUserContext } from "@/lib/user-context"
@@ -150,9 +150,16 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
         <div className="flex-1 space-y-6 p-4 md:p-6">
           {/* Header */}
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
-              <p className="text-muted-foreground">{project.description || "Project workspace"}</p>
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="icon" asChild>
+                <a href="/">
+                  <ArrowLeft className="h-5 w-5" />
+                </a>
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
+                <p className="text-muted-foreground">{project.description || "Project workspace"}</p>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               {canManageMembers && (
