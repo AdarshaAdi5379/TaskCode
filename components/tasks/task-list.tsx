@@ -23,11 +23,13 @@ import {
   Filter,
   ArrowUpDown,
   Clock,
-  AlertCircle
+  AlertCircle,
+  MessageSquare
 } from "lucide-react"
 import { useTaskContext } from "@/lib/task-context"
 import type { Task, TaskSortBy, TaskFilter } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import { TaskDetailModal } from "./task-detail-modal"
 
 interface TaskListProps {
   projectId: string
@@ -63,6 +65,7 @@ export function TaskList({ projectId }: TaskListProps) {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState("")
   const [showFilters, setShowFilters] = useState(false)
+  const [detailModalTaskId, setDetailModalTaskId] = useState<string | null>(null)
 
   const projectTasks = getTasksByProject(projectId)
 
@@ -311,6 +314,7 @@ export function TaskList({ projectId }: TaskListProps) {
                           task.status === "done" && "line-through text-muted-foreground"
                         )}
                         onClick={() => startEditing(task)}
+                        onDoubleClick={() => setDetailModalTaskId(task.id)}
                       >
                         {task.title}
                       </p>
@@ -383,6 +387,12 @@ export function TaskList({ projectId }: TaskListProps) {
           })}
         </div>
       </CardContent>
+
+      <TaskDetailModal 
+        open={!!detailModalTaskId} 
+        onOpenChange={(open) => !open && setDetailModalTaskId(null)}
+        taskId={detailModalTaskId}
+      />
     </Card>
   )
 }

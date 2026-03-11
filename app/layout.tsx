@@ -5,6 +5,7 @@ import "./globals.css"
 import { ThemeProvider } from "next-themes"
 import { TaskProvider } from "@/lib/task-context"
 import { ProjectProvider } from "@/lib/project-context"
+import { UserProvider } from "@/lib/user-context"
 
 export const metadata: Metadata = {
   title: "TaskZen - Project Management",
@@ -38,12 +39,14 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`font-sans antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <ProjectProvider>
-            <TaskProvider>
-              {children}
-              <Analytics />
-            </TaskProvider>
-          </ProjectProvider>
+          <UserProvider>
+            <ProjectProvider>
+              <TaskProvider>
+                {children}
+                <Analytics />
+              </TaskProvider>
+            </ProjectProvider>
+          </UserProvider>
         </ThemeProvider>
       </body>
     </html>

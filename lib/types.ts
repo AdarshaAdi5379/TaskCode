@@ -81,11 +81,43 @@ export interface ActivityLog {
   id: string
   projectId: string
   taskId?: string
+  taskTitle?: string
   userId: string
   userName: string
-  action: "created" | "updated" | "deleted" | "completed" | "assigned" | "commented" | "restored"
+  action: "created" | "updated" | "deleted" | "completed" | "assigned" | "commented" | "restored" | "member_added" | "member_removed" | "role_changed"
   details: string
   createdAt: Date
+}
+
+export interface UserSettings {
+  theme: "light" | "dark" | "system"
+  accentColor: "blue" | "purple" | "red" | "green" | "teal"
+  notifications: {
+    email: boolean
+    push: boolean
+    taskAssigned: boolean
+    taskCompleted: boolean
+    mentions: boolean
+  }
+}
+
+export interface User {
+  id: string
+  email: string
+  displayName: string
+  photoURL?: string
+  role: "user" | "admin"
+  createdAt: Date
+  settings: UserSettings
+}
+
+export interface UserContextType {
+  user: User | null
+  isAuthenticated: boolean
+  login: (email: string, name: string) => void
+  logout: () => void
+  updateProfile: (updates: Partial<Pick<User, "displayName" | "photoURL">>) => void
+  updateSettings: (settings: Partial<UserSettings>) => void
 }
 
 export type TaskSortBy = "priority" | "dueDate" | "createdAt" | "status" | "title"
