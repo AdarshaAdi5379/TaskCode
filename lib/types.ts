@@ -200,3 +200,72 @@ export interface ProjectContextType {
   isMember: (projectId: string, userId: string) => boolean
   isOwner: (projectId: string, userId: string) => boolean
 }
+
+export type SubscriptionPlan = "free" | "pro" | "enterprise"
+
+export interface PlanFeatures {
+  maxProjects: number
+  maxTeamMembers: number
+  calendarSync: boolean
+  advancedAnalytics: boolean
+  prioritySupport: boolean
+  customBranding: boolean
+  sso: boolean
+  apiAccess: boolean
+}
+
+export interface SubscriptionPlanDetails {
+  id: SubscriptionPlan
+  name: string
+  price: number
+  interval: "monthly" | "yearly"
+  features: PlanFeatures[]
+  description: string
+}
+
+export interface Subscription {
+  id: string
+  userId: string
+  plan: SubscriptionPlan
+  status: "active" | "cancelled" | "past_due" | "trialing"
+  currentPeriodStart: Date
+  currentPeriodEnd: Date
+  cancelAtPeriodEnd: boolean
+}
+
+export interface BillingHistoryItem {
+  id: string
+  userId: string
+  amount: number
+  currency: string
+  status: "succeeded" | "failed" | "pending"
+  description: string
+  createdAt: Date
+  invoiceUrl?: string
+}
+
+export interface FeatureFlag {
+  key: string
+  enabled: boolean
+  plans: SubscriptionPlan[]
+  overrideUsers: string[]
+  developerWhitelist: string[]
+}
+
+export interface BillingContextType {
+  subscription: Subscription | null
+  plans: SubscriptionPlanDetails[]
+  currentPlan: SubscriptionPlanDetails | null
+  billingHistory: BillingHistoryItem[]
+  isLoading: boolean
+  upgradePlan: (planId: SubscriptionPlan) => Promise<void>
+  cancelSubscription: () => Promise<void>
+  resumeSubscription: () => Promise<void>
+}
+
+export interface FeatureFlagsContextType {
+  flags: FeatureFlag[]
+  isFeatureEnabled: (key: string) => boolean
+  canAccessFeature: (key: string, userId: string) => boolean
+  updateFlag: (key: string, updates: Partial<FeatureFlag>) => void
+}

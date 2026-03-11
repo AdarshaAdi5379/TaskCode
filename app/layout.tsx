@@ -10,6 +10,8 @@ import { NotificationProvider } from "@/lib/notification-context"
 import { ConnectionProvider, ConnectionStatus } from "@/lib/connection-context"
 import { AccentThemeProvider } from "@/lib/accent-theme"
 import { ToastProvider } from "@/lib/toast-context"
+import { BillingProvider } from "@/lib/billing-context"
+import { FeatureFlagsProvider } from "@/lib/feature-flags-context"
 
 export const metadata: Metadata = {
   title: "TaskZen - Project Management",
@@ -44,21 +46,25 @@ export default function RootLayout({
       <body className={`font-sans antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <UserProvider>
-            <ConnectionProvider>
-              <ToastProvider>
-                <AccentThemeProvider>
-                  <NotificationProvider>
-                    <ProjectProvider>
-                      <TaskProvider>
-                        {children}
-                        <Analytics />
-                        <ConnectionStatus />
-                      </TaskProvider>
-                    </ProjectProvider>
-                  </NotificationProvider>
-                </AccentThemeProvider>
-              </ToastProvider>
-            </ConnectionProvider>
+            <BillingProvider>
+              <FeatureFlagsProvider>
+                <ConnectionProvider>
+                  <ToastProvider>
+                    <AccentThemeProvider>
+                      <NotificationProvider>
+                        <ProjectProvider>
+                          <TaskProvider>
+                            {children}
+                            <Analytics />
+                            <ConnectionStatus />
+                          </TaskProvider>
+                        </ProjectProvider>
+                      </NotificationProvider>
+                    </AccentThemeProvider>
+                  </ToastProvider>
+                </ConnectionProvider>
+              </FeatureFlagsProvider>
+            </BillingProvider>
           </UserProvider>
         </ThemeProvider>
       </body>

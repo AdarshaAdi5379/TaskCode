@@ -10,6 +10,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTaskContext } from "@/lib/task-context"
 import { useProjectContext } from "@/lib/project-context"
+import { parseNaturalLanguage, suggestPriority } from "@/lib/ai-service"
+import { Sparkles, Zap, Calendar, Tag, AlertCircle } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 
 interface QuickAddTaskModalProps {
   open: boolean
@@ -20,8 +23,16 @@ export function QuickAddTaskModal({ open, onOpenChange }: QuickAddTaskModalProps
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [projectId, setProjectId] = useState<string>("")
-  const [priority, setPriority] = useState<"low" | "medium" | "high">("medium")
+  const [priority, setPriority] = useState<"low" | "medium" | "high" | "critical">("medium")
+  const [dueDate, setDueDate] = useState("")
+  const [labels, setLabels] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [detectedInfo, setDetectedInfo] = useState<{
+    priority?: string
+    dueDate?: string
+    labels?: string[]
+  }>({})
   const { addTask } = useTaskContext()
   const { projects } = useProjectContext()
 
@@ -34,8 +45,63 @@ export function QuickAddTaskModal({ open, onOpenChange }: QuickAddTaskModalProps
       setDescription("")
       setProjectId("")
       setPriority("medium")
+      setDueDate("")
+      setLabels([])
+      setDetectedInfo({})
     }
   }, [open, projects, projectId])
+
+  const analyzeInput = (input: string) => {
+    if (!input.trim() || input.length < 5) {
+      setDetectedInfo({})
+      return
+    }
+
+    setIsAnalyzing(true)
+
+    setTimeout(() => {
+      try {
+        const parsed = parseNaturalLanguage(input)
+        const suggestedPriority = suggestPriority(input)
+
+        const newDetectedInfo: typeof detectedInfo = {}
+
+        if (parsed.priority) {
+          newDetectedInfo.priority = parsed.priority
+        } else {
+          newDetectedInfo.priority = suggestedPriority
+        }
+
+        if (parsed.dueDate) {
+          newDetectedInfo.dueDate = parsed.dueDate
+        }
+
+        if (parsed.labels && parsed.labels.length > 0) {
+          newDetectedInfo.labels = parsed.labels
+        }
+
+        setDetectedInfo(newDetectedInfo)
+
+        if (newDetectedInfo.priority) {
+          setPriority(newDetectedInfo.priority as "low" | "medium" | "high" | "critical")
+        }
+        if (newDetectedInfo.dueDate) {
+          setDueDate(newDetectedInfo.dueDate)
+        }
+        if (newDetectedInfo.labels) {
+          setLabels(newDetectedInfo.labels)
+        }
+      } catch (e) {
+        console.error("[TaskZen] Error parsing input:", e)
+      }
+      setIsAnalyzing(false)
+    }, 300)
+  }
+
+  const handleTitleChange = (value: string) => {
+    setTitle(value)
+    analyzeInput(value)
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -43,7 +109,6 @@ export function QuickAddTaskModal({ open, onOpenChange }: QuickAddTaskModalProps
 
     setIsLoading(true)
 
-    // Simulate API call
     setTimeout(() => {
       addTask({
         title: title.trim(),
@@ -51,14 +116,18 @@ export function QuickAddTaskModal({ open, onOpenChange }: QuickAddTaskModalProps
         projectId,
         status: "todo",
         priority,
+        dueDate: dueDate || undefined,
         assignees: [],
-        labels: [],
+        labels,
         tags: [],
       })
       setTitle("")
       setDescription("")
       setProjectId("")
       setPriority("medium")
+      setDueDate("")
+      setLabels([])
+      setDetectedInfo({})
       setIsLoading(false)
       onOpenChange(false)
     }, 300)
@@ -66,75 +135,141 @@ export function QuickAddTaskModal({ open, onOpenChange }: QuickAddTaskModalProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Quick Add Task</DialogTitle>
-          <DialogDescription>Create a new task quickly</DialogDescription>
+          <DialogTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            Quick Add Task
+          </DialogTitle>
+          <DialogDescription>
+            Create a task instantly. Use natural language like "Finish report by Friday #work #urgent"
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Task Title */}
           <div className="space-y-2">
             <Label htmlFor="task-title">Task Title</Label>
-            <Input
-              id="task-title"
-              placeholder="What needs to be done?"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              disabled={isLoading}
-              autoFocus
-            />
-          </div>
+            <div className="relative">
+              <Input
+                id="task-title"
+                placeholder="What needs to be done? (e.g., Finish report by Friday #urgent)"
+                value={title}
+                onChange={(e) => handleTitleChange(e.target.value)}
+                disabled={isLoading}
+                autoFocus
+              />
+              {isAnalyzing && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <Zap className="h-4 w-4 animate-pulse text-primary" />
+                </div>
+              )}
+            </div>
 
-          {/* Project Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="project-select">Project</Label>
-            {projects.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-2">No projects available. Create a project first.</p>
-            ) : (
-              <Select value={projectId} onValueChange={setProjectId} disabled={isLoading}>
-                <SelectTrigger id="project-select">
-                  <SelectValue placeholder="Select a project" />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {Object.keys(detectedInfo).length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {detectedInfo.priority && (
+                  <Badge variant="outline" className="gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    Priority: {detectedInfo.priority}
+                  </Badge>
+                )}
+                {detectedInfo.dueDate && (
+                  <Badge variant="outline" className="gap-1">
+                    <Calendar className="h-3 w-3" />
+                    Due: {new Date(detectedInfo.dueDate).toLocaleDateString()}
+                  </Badge>
+                )}
+                {detectedInfo.labels && detectedInfo.labels.map((label) => (
+                  <Badge key={label} variant="secondary" className="gap-1">
+                    <Tag className="h-3 w-3" />
+                    {label}
+                  </Badge>
+                ))}
+              </div>
             )}
           </div>
 
-          {/* Priority */}
-          <div className="space-y-2">
-            <Label htmlFor="priority-select">Priority</Label>
-            <Select value={priority} onValueChange={(value) => setPriority(value as any)} disabled={isLoading}>
-              <SelectTrigger id="priority-select">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="p-3 rounded-lg bg-muted/50 text-sm">
+            <p className="font-medium mb-2">Try natural language:</p>
+            <ul className="text-xs text-muted-foreground space-y-1">
+              <li>• "Fix login bug by tomorrow #urgent"</li>
+              <li>• "Write documentation next week #docs"</li>
+              <li>• "Review PR today @john"</li>
+            </ul>
           </div>
 
-          {/* Description */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="project-select">Project</Label>
+              {projects.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-2">No projects</p>
+              ) : (
+                <Select value={projectId} onValueChange={setProjectId} disabled={isLoading}>
+                  <SelectTrigger id="project-select">
+                    <SelectValue placeholder="Select project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="priority-select">Priority</Label>
+              <Select value={priority} onValueChange={(v) => setPriority(v as typeof priority)} disabled={isLoading}>
+                <SelectTrigger id="priority-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="critical">Critical</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="due-date">Due Date</Label>
+              <Input
+                id="due-date"
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="labels">Labels</Label>
+              <Input
+                id="labels"
+                placeholder="work, urgent, docs"
+                value={labels.join(", ")}
+                onChange={(e) => setLabels(e.target.value.split(",").map((l) => l.trim()).filter(Boolean))}
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="task-description">Description (optional)</Label>
+            <Label htmlFor="task-description">Description</Label>
             <Input
               id="task-description"
-              placeholder="Add details..."
+              placeholder="Additional details..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               disabled={isLoading}
             />
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-2 justify-end pt-4">
+          <div className="flex gap-2 justify-end pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
               Cancel
             </Button>
