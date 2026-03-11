@@ -122,9 +122,17 @@ export interface Notification {
   createdAt: Date
 }
 
+export type NotificationFilter = {
+  type?: Notification["type"]
+  projectId?: string
+}
+
 export interface NotificationContextType {
   notifications: Notification[]
   unreadCount: number
+  filter: NotificationFilter
+  setFilter: (filter: NotificationFilter) => void
+  filteredNotifications: Notification[]
   addNotification: (notification: Omit<Notification, "id" | "isRead" | "createdAt">) => void
   markAsRead: (id: string) => void
   markAllAsRead: () => void

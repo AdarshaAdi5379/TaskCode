@@ -1,22 +1,43 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Bell, Check, CheckCheck, Trash2, X, MessageSquare, UserPlus, CheckCircle2, AtSign } from "lucide-react"
+import { Bell, Check, CheckCheck, Trash2, X, MessageSquare, UserPlus, CheckCircle2, AtSign, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { Input } from "@/components/ui/input"
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select"
 import { useNotificationContext } from "@/lib/notification-context"
+import { useProjectContext } from "@/lib/project-context"
 import { cn } from "@/lib/utils"
-import Link from "next/link"
+import type { Notification } from "@/lib/types"
 
 export function NotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification, clearAll } = useNotificationContext()
+  const { 
+    notifications, 
+    unreadCount, 
+    filter, 
+    setFilter, 
+    filteredNotifications,
+    markAsRead, 
+    markAllAsRead, 
+    deleteNotification, 
+    clearAll 
+  } = useNotificationContext()
+  const { projects } = useProjectContext()
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false)
+        setShowFilters(false)
       }
     }
     document.addEventListener("mousedown", handleClickOutside)
@@ -54,6 +75,15 @@ export function NotificationDropdown() {
     return new Date(date).toLocaleDateString()
   }
 
+  const clearFilters = () => {
+    setFilter({})
+    setShowFilters(false)
+  }
+
+  const hasActiveFilters = filter.type || filter.projectId
+
+  const displayNotifications = hasActiveFilters ? filteredNotifications : notifications
+
   return (
     <div className="relative" ref={dropdownRef}>
       <Button
@@ -76,10 +106,18 @@ export function NotificationDropdown() {
           <div className="flex items-center justify-between p-3 border-b">
             <h3 className="font-semibold">Notifications</h3>
             <div className="flex items-center gap-1">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowFilters(!showFilters)}
+                className={cn("h-7 text-xs", showFilters && "bg-muted")}
+              >
+                <Filter className="h-3 w-3 mr-1" />
+                Filter
+              </Button>
               {unreadCount > 0 && (
                 <Button variant="ghost" size="sm" onClick={markAllAsRead} className="h-7 text-xs">
                   <CheckCheck className="h-3 w-3 mr-1" />
-                  Mark all read
                 </Button>
               )}
               {notifications.length > 0 && (
@@ -90,15 +128,61 @@ export function NotificationDropdown() {
             </div>
           </div>
 
-          <ScrollArea className="h-80">
-            {notifications.length === 0 ? (
+          {showFilters && (
+            <div className="p-3 border-b bg-muted/30 space-y-2">
+              <Select 
+                value={filter.type || "all"} 
+                onValueChange={(v) => setFilter({ ...filter, type: v === "all" ? undefined : v as Notification["type"] })}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="All types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All types</SelectItem>
+                  <SelectItem value="mention">Mentions</SelectItem>
+                  <SelectItem value="comment">Comments</SelectItem>
+                  <SelectItem value="task_assigned">Task Assigned</SelectItem>
+                  <SelectItem value="task_completed">Task Completed</SelectItem>
+                  <SelectItem value="project_invite">Project Invite</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select 
+                value={filter.projectId || "all"} 
+                onValueChange={(v) => setFilter({ ...filter, projectId: v === "all" ? undefined : v })}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="All projects" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All projects</SelectItem>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="w-full text-xs">
+                  Clear filters
+                </Button>
+              )}
+            </div>
+          )}
+
+          <div className="max-h-80 overflow-y-auto">
+            {displayNotifications.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground">
                 <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No notifications yet</p>
+                <p className="text-sm">
+                  {hasActiveFilters ? "No notifications match filters" : "No notifications yet"}
+                </p>
               </div>
             ) : (
               <div className="divide-y">
-                {notifications.map((notification) => (
+                {displayNotifications.map((notification) => (
                   <div
                     key={notification.id}
                     className={cn(
@@ -136,7 +220,7 @@ export function NotificationDropdown() {
                 ))}
               </div>
             )}
-          </ScrollArea>
+          </div>
         </div>
       )}
     </div>

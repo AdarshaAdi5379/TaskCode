@@ -1,14 +1,15 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useState, useEffect, useCallback } from "react"
-import type { Notification, NotificationContextType } from "./types"
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react"
+import type { Notification, NotificationContextType, NotificationFilter } from "./types"
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [isHydrated, setIsHydrated] = useState(false)
+  const [filter, setFilter] = useState<NotificationFilter>({})
 
   useEffect(() => {
     const stored = localStorage.getItem("taskzen-notifications")
@@ -31,6 +32,20 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       localStorage.setItem("taskzen-notifications", JSON.stringify(notifications))
     }
   }, [notifications, isHydrated])
+
+  const filteredNotifications = useMemo(() => {
+    let result = notifications
+    
+    if (filter.type) {
+      result = result.filter((n) => n.type === filter.type)
+    }
+    
+    if (filter.projectId) {
+      result = result.filter((n) => n.projectId === filter.projectId)
+    }
+    
+    return result
+  }, [notifications, filter])
 
   const addNotification = useCallback((notificationData: Omit<Notification, "id" | "isRead" | "createdAt">) => {
     const notification: Notification = {
@@ -66,6 +81,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     <NotificationContext.Provider value={{
       notifications,
       unreadCount,
+      filter,
+      setFilter,
+      filteredNotifications,
       addNotification,
       markAsRead,
       markAllAsRead,

@@ -7,6 +7,7 @@ import { TaskProvider } from "@/lib/task-context"
 import { ProjectProvider } from "@/lib/project-context"
 import { UserProvider } from "@/lib/user-context"
 import { NotificationProvider } from "@/lib/notification-context"
+import { ConnectionProvider, ConnectionStatus } from "@/lib/connection-context"
 
 export const metadata: Metadata = {
   title: "TaskZen - Project Management",
@@ -41,14 +42,17 @@ export default function RootLayout({
       <body className={`font-sans antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <UserProvider>
-            <NotificationProvider>
-              <ProjectProvider>
-                <TaskProvider>
-                  {children}
-                  <Analytics />
-                </TaskProvider>
-              </ProjectProvider>
-            </NotificationProvider>
+            <ConnectionProvider>
+              <NotificationProvider>
+                <ProjectProvider>
+                  <TaskProvider>
+                    {children}
+                    <Analytics />
+                    <ConnectionStatus />
+                  </TaskProvider>
+                </ProjectProvider>
+              </NotificationProvider>
+            </ConnectionProvider>
           </UserProvider>
         </ThemeProvider>
       </body>
