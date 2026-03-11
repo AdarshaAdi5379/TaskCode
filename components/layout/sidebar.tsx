@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { ChevronDown, Plus, FolderOpen, Trash2, Settings, CreditCard } from "lucide-react"
+import { ChevronDown, Plus, FolderOpen, Trash2, Settings, CreditCard, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -139,6 +139,12 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               <Button variant="ghost" size="sm" className="w-full justify-start gap-2">
                 <CreditCard className="h-4 w-4" />
                 Billing
+              </Button>
+            </Link>
+            <Link href="/admin" onClick={handleSidebarClose}>
+              <Button variant="ghost" size="sm" className="w-full justify-start gap-2">
+                <Shield className="h-4 w-4" />
+                Admin
               </Button>
             </Link>
             <Button variant="ghost" size="sm" className="w-full justify-start gap-2">

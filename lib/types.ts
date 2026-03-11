@@ -269,3 +269,49 @@ export interface FeatureFlagsContextType {
   canAccessFeature: (key: string, userId: string) => boolean
   updateFlag: (key: string, updates: Partial<FeatureFlag>) => void
 }
+
+export type UserRole = "user" | "admin" | "superadmin"
+
+export interface AdminUser {
+  id: string
+  email: string
+  displayName: string
+  role: UserRole
+  status: "active" | "suspended" | "inactive"
+  createdAt: Date
+  lastLoginAt?: Date
+  projectsCount: number
+  tasksCount: number
+}
+
+export interface AuditLog {
+  id: string
+  userId: string
+  userName: string
+  action: string
+  resource: string
+  resourceId: string
+  details: string
+  ipAddress?: string
+  createdAt: Date
+}
+
+export interface SystemMetrics {
+  totalUsers: number
+  activeUsers: number
+  totalProjects: number
+  totalTasks: number
+  completedTasks: number
+  storageUsed: number
+  apiCalls: number
+}
+
+export interface AdminContextType {
+  users: AdminUser[]
+  auditLogs: AuditLog[]
+  metrics: SystemMetrics
+  isAdmin: boolean
+  updateUserRole: (userId: string, role: UserRole) => void
+  suspendUser: (userId: string) => void
+  activateUser: (userId: string) => void
+}

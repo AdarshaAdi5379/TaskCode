@@ -12,6 +12,7 @@ import { AccentThemeProvider } from "@/lib/accent-theme"
 import { ToastProvider } from "@/lib/toast-context"
 import { BillingProvider } from "@/lib/billing-context"
 import { FeatureFlagsProvider } from "@/lib/feature-flags-context"
+import { AdminProvider } from "@/lib/admin-context"
 
 export const metadata: Metadata = {
   title: "TaskZen - Project Management",
@@ -48,7 +49,8 @@ export default function RootLayout({
           <UserProvider>
             <BillingProvider>
               <FeatureFlagsProvider>
-                <ConnectionProvider>
+                <AdminProvider>
+                  <ConnectionProvider>
                   <ToastProvider>
                     <AccentThemeProvider>
                       <NotificationProvider>
@@ -63,6 +65,7 @@ export default function RootLayout({
                     </AccentThemeProvider>
                   </ToastProvider>
                 </ConnectionProvider>
+                </AdminProvider>
               </FeatureFlagsProvider>
             </BillingProvider>
           </UserProvider>
