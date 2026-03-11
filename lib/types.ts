@@ -44,8 +44,8 @@ export interface Task {
   
   // Comments & collaboration
   comments: Comment[]
-  tags: string[]
-  
+  tags?: string[]
+   
   // Reminder
   reminder?: string
 }
@@ -110,12 +110,18 @@ export interface TaskContextType {
   getActiveTasks: () => Task[]
   getTrashedTasks: () => Task[]
   getSnoozedTasks: () => Task[]
+  getOverdueTasks: () => Task[]
+  getTodaysTasks: () => Task[]
+  getMyTasks: (userId: string) => Task[]
   createSubTask: (parentTaskId: string, title: string) => void
   updateSubTask: (parentTaskId: string, subtaskId: string, updates: Partial<SubTask>) => void
   deleteSubTask: (parentTaskId: string, subtaskId: string) => void
   toggleSubTask: (parentTaskId: string, subtaskId: string) => void
   addComment: (taskId: string, comment: Omit<Comment, "id" | "createdAt">) => void
   deleteComment: (taskId: string, commentId: string) => void
+  sortTasks: (tasks: Task[], sortBy: TaskSortBy, direction?: "asc" | "desc") => Task[]
+  filterTasks: (tasks: Task[], filter: TaskFilter) => Task[]
+  searchTasks: (tasks: Task[], query: string) => Task[]
 }
 
 export interface ProjectContextType {

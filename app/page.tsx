@@ -1,5 +1,8 @@
 import { KPICards } from "@/components/dashboard/kpi-cards"
 import { TaskChart } from "@/components/dashboard/task-chart"
+import { WorkloadChart } from "@/components/dashboard/workload-chart"
+import { MyTasks } from "@/components/dashboard/my-tasks"
+import { ProjectProgress } from "@/components/dashboard/project-progress"
 import { TeamActivity } from "@/components/dashboard/team-activity"
 import { MainLayout } from "@/components/layout/main-layout"
 import { Button } from "@/components/ui/button"
@@ -28,8 +31,14 @@ export default function DashboardPage() {
         <KPICards />
 
         <div className="grid gap-6 lg:grid-cols-3">
-          <TaskChart />
-          <TeamActivity />
+          <div className="lg:col-span-2 space-y-6">
+            <TaskChart />
+            <WorkloadChart />
+          </div>
+          <div className="space-y-6">
+            <MyTasks />
+            <ProjectProgress />
+          </div>
         </div>
       </div>
     </MainLayout>

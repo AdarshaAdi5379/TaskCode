@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { createContext, useContext, useState, useEffect, useCallback } from "react"
-import type { Task, TaskContextType, SubTask, Comment } from "./types"
+import type { Task, TaskContextType, SubTask, Comment, TaskSortBy, TaskFilter } from "./types"
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined)
 
@@ -143,6 +143,107 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     )
   }, [tasks])
 
+  const getOverdueTasks = useCallback(() => {
+    const now = new Date()
+    return tasks.filter((task) => {
+      if (!task.dueDate || task.status === "done" || task.isSoftDeleted) return false
+      return new Date(task.dueDate) < now
+    })
+  }, [tasks])
+
+  const getTodaysTasks = useCallback(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    return tasks.filter((task) => {
+      if (!task.dueDate || task.status === "done" || task.isSoftDeleted) return false
+      const dueDate = new Date(task.dueDate)
+      return dueDate >= today && dueDate < tomorrow
+    })
+  }, [tasks])
+
+  const getMyTasks = useCallback((userId: string) => {
+    return tasks.filter((task) => 
+      task.assignees.includes(userId) && !task.isSoftDeleted && task.status !== "done"
+    )
+  }, [tasks])
+
+  const sortTasks = useCallback((tasksToSort: Task[], sortBy: TaskSortBy, direction: "asc" | "desc" = "asc") => {
+    const sorted = [...tasksToSort].sort((a, b) => {
+      let comparison = 0
+      switch (sortBy) {
+        case "priority": {
+          const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 }
+          comparison = priorityOrder[a.priority] - priorityOrder[b.priority]
+          break
+        }
+        case "dueDate":
+          if (!a.dueDate && !b.dueDate) comparison = 0
+          else if (!a.dueDate) comparison = 1
+          else if (!b.dueDate) comparison = -1
+          else comparison = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+          break
+        case "createdAt":
+          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          break
+        case "status": {
+          const statusOrder = { todo: 1, "in-progress": 2, done: 3 }
+          comparison = statusOrder[a.status] - statusOrder[b.status]
+          break
+        }
+        case "title":
+          comparison = a.title.localeCompare(b.title)
+          break
+      }
+      return direction === "desc" ? -comparison : comparison
+    })
+    return sorted
+  }, [])
+
+  const filterTasks = useCallback((tasksToFilter: Task[], filter: TaskFilter) => {
+    return tasksToFilter.filter((task) => {
+      if (filter.status && task.status !== filter.status) return false
+      if (filter.priority && task.priority !== filter.priority) return false
+      if (filter.assignee && !task.assignees.includes(filter.assignee)) return false
+      if (filter.dueDate) {
+        const now = new Date()
+        now.setHours(0, 0, 0, 0)
+        const today = new Date(now)
+        const upcoming = new Date(now)
+        upcoming.setDate(upcoming.getDate() + 7)
+        
+        if (!task.dueDate && filter.dueDate !== "none") return false
+        
+        if (filter.dueDate === "overdue") {
+          if (!task.dueDate || new Date(task.dueDate) >= now) return false
+        } else if (filter.dueDate === "today") {
+          if (!task.dueDate) return false
+          const dueDate = new Date(task.dueDate)
+          if (dueDate.toDateString() !== now.toDateString()) return false
+        } else if (filter.dueDate === "upcoming") {
+          if (!task.dueDate) return false
+          const dueDate = new Date(task.dueDate)
+          if (dueDate < now || dueDate > upcoming) return false
+        } else if (filter.dueDate === "none") {
+          if (task.dueDate) return false
+        }
+      }
+      return true
+    })
+  }, [])
+
+  const searchTasks = useCallback((tasksToSearch: Task[], query: string) => {
+    if (!query.trim()) return tasksToSearch
+    const lowerQuery = query.toLowerCase()
+    return tasksToSearch.filter((task) => 
+      task.title.toLowerCase().includes(lowerQuery) ||
+      task.description?.toLowerCase().includes(lowerQuery) ||
+      task.labels?.some((label) => label.toLowerCase().includes(lowerQuery)) ||
+      task.tags?.some((tag) => tag.toLowerCase().includes(lowerQuery))
+    )
+  }, [])
+
   // Sub-task functions
   const createSubTask = useCallback((parentTaskId: string, title: string) => {
     const newSubTask: SubTask = {
@@ -270,12 +371,18 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       getActiveTasks,
       getTrashedTasks,
       getSnoozedTasks,
+      getOverdueTasks,
+      getTodaysTasks,
+      getMyTasks,
       createSubTask,
       updateSubTask,
       deleteSubTask,
       toggleSubTask,
       addComment,
       deleteComment,
+      sortTasks,
+      filterTasks,
+      searchTasks,
     }}>
       {children}
     </TaskContext.Provider>

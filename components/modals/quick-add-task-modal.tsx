@@ -53,6 +53,7 @@ export function QuickAddTaskModal({ open, onOpenChange }: QuickAddTaskModalProps
         priority,
         assignees: [],
         labels: [],
+        tags: [],
       })
       setTitle("")
       setDescription("")
