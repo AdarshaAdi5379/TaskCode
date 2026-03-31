@@ -1,3 +1,32 @@
+// ─── Issue Types ──────────────────────────────────────────────────────────────
+export type IssueType = "task" | "bug" | "story" | "epic"
+
+// ─── Dependencies ─────────────────────────────────────────────────────────────
+export type DependencyType = "blocks" | "is-blocked-by" | "relates-to" | "duplicates"
+
+export interface TaskDependency {
+  id: string
+  taskId: string       // the OTHER task
+  taskTitle: string    // cached for display
+  type: DependencyType
+}
+
+// ─── Sprint ───────────────────────────────────────────────────────────────────
+export type SprintStatus = "planning" | "active" | "completed"
+
+export interface Sprint {
+  id: string
+  projectId: string
+  name: string
+  goal?: string
+  startDate: string   // ISO date string
+  endDate: string     // ISO date string
+  status: SprintStatus
+  createdAt: Date
+  completedAt?: Date
+  velocity?: number   // story points completed
+}
+
 export interface SubTask {
   id: string
   title: string
@@ -48,6 +77,13 @@ export interface Task {
    
   // Reminder
   reminder?: string
+
+  // Jira-parity fields
+  issueType: IssueType
+  storyPoints?: number
+  epicId?: string       // parent epic task id
+  sprintId?: string     // sprint this task belongs to
+  dependencies: TaskDependency[]
 }
 
 export interface ProjectSettings {
@@ -159,7 +195,7 @@ export type TaskFilter = {
 
 export interface TaskContextType {
   tasks: Task[]
-  addTask: (task: Omit<Task, "id" | "createdAt" | "updatedAt" | "isSoftDeleted" | "deletedAt" | "subtasks" | "isCompleted" | "completedAt" | "comments">) => void
+  addTask: (task: Omit<Task, "id" | "createdAt" | "updatedAt" | "isSoftDeleted" | "deletedAt" | "subtasks" | "isCompleted" | "completedAt" | "comments" | "dependencies">) => void
   updateTask: (id: string, updates: Partial<Task>) => void
   deleteTask: (id: string) => void
   softDeleteTask: (id: string) => void
@@ -174,12 +210,16 @@ export interface TaskContextType {
   getOverdueTasks: () => Task[]
   getTodaysTasks: () => Task[]
   getMyTasks: (userId: string) => Task[]
+  getBacklogTasks: (projectId: string) => Task[]
+  getSprintTasks: (sprintId: string) => Task[]
   createSubTask: (parentTaskId: string, title: string) => void
   updateSubTask: (parentTaskId: string, subtaskId: string, updates: Partial<SubTask>) => void
   deleteSubTask: (parentTaskId: string, subtaskId: string) => void
   toggleSubTask: (parentTaskId: string, subtaskId: string) => void
   addComment: (taskId: string, comment: Omit<Comment, "id" | "createdAt">) => void
   deleteComment: (taskId: string, commentId: string) => void
+  addDependency: (taskId: string, dep: Omit<TaskDependency, "id">) => void
+  removeDependency: (taskId: string, depId: string) => void
   sortTasks: (tasks: Task[], sortBy: TaskSortBy, direction?: "asc" | "desc") => Task[]
   filterTasks: (tasks: Task[], filter: TaskFilter) => Task[]
   searchTasks: (tasks: Task[], query: string) => Task[]
@@ -187,7 +227,7 @@ export interface TaskContextType {
 
 export interface ProjectContextType {
   projects: Project[]
-  addProject: (project: Omit<Project, "id" | "createdAt" | "updatedAt" | "isArchived" | "members" | "settings">) => void
+  addProject: (project: Omit<Project, "id" | "createdAt" | "updatedAt" | "isArchived" | "members" | "settings" | "ownerId">) => void
   updateProject: (id: string, updates: Partial<Project>) => void
   deleteProject: (id: string) => void
   getProject: (id: string) => Project | undefined
@@ -314,4 +354,16 @@ export interface AdminContextType {
   updateUserRole: (userId: string, role: UserRole) => void
   suspendUser: (userId: string) => void
   activateUser: (userId: string) => void
+}
+
+// ─── Sprint Context ────────────────────────────────────────────────────────────
+export interface SprintContextType {
+  sprints: Sprint[]
+  addSprint: (sprint: Omit<Sprint, "id" | "createdAt" | "completedAt" | "velocity">) => Sprint
+  updateSprint: (id: string, updates: Partial<Sprint>) => void
+  deleteSprint: (id: string) => void
+  startSprint: (id: string) => void
+  completeSprint: (id: string) => void
+  getSprintsByProject: (projectId: string) => Sprint[]
+  getActiveSprint: (projectId: string) => Sprint | undefined
 }

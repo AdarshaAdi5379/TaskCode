@@ -74,6 +74,7 @@ export function TaskModal({ open, onOpenChange, projectId }: TaskModalProps) {
       assignees,
       labels,
       projectId,
+      issueType: "task",
     })
 
     // Reset form

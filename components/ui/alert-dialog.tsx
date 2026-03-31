@@ -133,7 +133,7 @@ function ConfirmDialog({
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>{cancelText}</AlertDialogCancel>
+          <AlertDialogCancel onClick={() => onOpenChange(false)}>{cancelText}</AlertDialogCancel>
           <AlertDialogAction 
             onClick={handleConfirm}
             className={variant === "destructive" ? "bg-red-500 hover:bg-red-600 text-white" : ""}

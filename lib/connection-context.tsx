@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { createContext, useContext, useState, useEffect, useCallback } from "react"
-import { Wifi, WifiOff, Loader2 } from "lucide-react"
+import { WifiOff, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type ConnectionStatus = "connected" | "disconnected" | "connecting"
@@ -15,12 +15,15 @@ interface ConnectionContextType {
 const ConnectionContext = createContext<ConnectionContextType | undefined>(undefined)
 
 export function ConnectionProvider({ children }: { children: React.ReactNode }) {
+  // Initialize from actual browser state to avoid wrong initial value
   const [status, setStatus] = useState<ConnectionStatus>("connecting")
-  const [isOnline, setIsOnline] = useState(true)
+  const [isOnline, setIsOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true)
 
   useEffect(() => {
-    setStatus("connected")
-    setIsOnline(true)
+    // Set actual state after mount
+    const online = navigator.onLine
+    setIsOnline(online)
+    setStatus(online ? "connected" : "disconnected")
 
     const handleOnline = () => {
       setStatus("connected")

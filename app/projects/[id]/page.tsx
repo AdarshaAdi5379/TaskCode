@@ -6,12 +6,14 @@ import { TaskModal } from "@/components/tasks/task-modal"
 import { TaskList } from "@/components/tasks/task-list"
 import { KanbanView } from "@/components/tasks/kanban-view"
 import { CalendarView } from "@/components/tasks/calendar-view"
+import { BacklogView } from "@/components/tasks/backlog-view"
+import { TimelineView } from "@/components/tasks/timeline-view"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Plus, LayoutList, Grid3x3, Calendar, Users, Activity, UserPlus, Trash2, MoreHorizontal, Crown, Shield, User, ArrowLeft, Home } from "lucide-react"
+import { Plus, LayoutList, Grid3x3, Calendar, Users, Activity, UserPlus, Trash2, MoreHorizontal, Crown, Shield, User, ArrowLeft, GanttChart, ListTodo } from "lucide-react"
 import { useProjectContext } from "@/lib/project-context"
 import { useTaskContext } from "@/lib/task-context"
 import { useUserContext } from "@/lib/user-context"
@@ -177,33 +179,60 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
           {/* View Tabs */}
           <Tabs value={activeView} onValueChange={setActiveView}>
-            <TabsList className="grid w-full max-w-lg grid-cols-4">
-              <TabsTrigger value="list" className="gap-2">
+            <TabsList className="grid w-full max-w-2xl grid-cols-7">
+              <TabsTrigger value="list" className="gap-1.5">
                 <LayoutList className="h-4 w-4" />
-                <span className="hidden sm:inline">List</span>
+                <span className="hidden lg:inline">List</span>
               </TabsTrigger>
-              <TabsTrigger value="kanban" className="gap-2">
+              <TabsTrigger value="kanban" className="gap-1.5">
                 <Grid3x3 className="h-4 w-4" />
-                <span className="hidden sm:inline">Kanban</span>
+                <span className="hidden lg:inline">Board</span>
               </TabsTrigger>
-              <TabsTrigger value="members" className="gap-2">
+              <TabsTrigger value="backlog" className="gap-1.5">
+                <ListTodo className="h-4 w-4" />
+                <span className="hidden lg:inline">Backlog</span>
+              </TabsTrigger>
+              <TabsTrigger value="timeline" className="gap-1.5">
+                <GanttChart className="h-4 w-4" />
+                <span className="hidden lg:inline">Timeline</span>
+              </TabsTrigger>
+              <TabsTrigger value="calendar" className="gap-1.5">
+                <Calendar className="h-4 w-4" />
+                <span className="hidden lg:inline">Calendar</span>
+              </TabsTrigger>
+              <TabsTrigger value="members" className="gap-1.5">
                 <Users className="h-4 w-4" />
-                <span className="hidden sm:inline">Team</span>
+                <span className="hidden lg:inline">Team</span>
               </TabsTrigger>
-              <TabsTrigger value="activity" className="gap-2">
+              <TabsTrigger value="activity" className="gap-1.5">
                 <Activity className="h-4 w-4" />
-                <span className="hidden sm:inline">Activity</span>
+                <span className="hidden lg:inline">Activity</span>
               </TabsTrigger>
             </TabsList>
 
             {/* List View */}
             <TabsContent value="list" className="mt-6">
-              <TaskList projectId={projectId} />
+              <TaskList projectId={projectId} onCreateTask={() => setIsModalOpen(true)} />
             </TabsContent>
 
             {/* Kanban View */}
             <TabsContent value="kanban" className="mt-6">
               <KanbanView projectId={projectId} />
+            </TabsContent>
+
+            {/* Backlog View */}
+            <TabsContent value="backlog" className="mt-6">
+              <BacklogView projectId={projectId} />
+            </TabsContent>
+
+            {/* Timeline / Gantt View */}
+            <TabsContent value="timeline" className="mt-6">
+              <TimelineView projectId={projectId} />
+            </TabsContent>
+
+            {/* Calendar View */}
+            <TabsContent value="calendar" className="mt-6">
+              <CalendarView projectId={projectId} />
             </TabsContent>
 
             {/* Members View */}

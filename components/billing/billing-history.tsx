@@ -77,10 +77,10 @@ export function BillingHistory() {
           </div>
         )}
 
-        {subscription?.status === "cancelled" && (
+        {subscription?.cancelAtPeriodEnd && subscription.status === "active" && (
           <div className="mt-4 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800">
             <p className="text-sm text-yellow-800 dark:text-yellow-200">
-              Your subscription will end on {formatDate(subscription.currentPeriodEnd)}
+              Your subscription is set to cancel on {formatDate(subscription.currentPeriodEnd)}. You'll retain access until then.
             </p>
             <Button
               variant="outline"

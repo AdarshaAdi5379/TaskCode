@@ -24,6 +24,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const { projects, deleteProject } = useProjectContext()
   const { deleteTask, getTasksByProject } = useTaskContext()
 
+  // Only show non-archived projects in the sidebar
+  const activeProjects = projects.filter((p) => !p.isArchived)
+
   const toggleProjects = () => {
     setExpandedProjects(!expandedProjects)
   }
@@ -100,10 +103,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               {/* Projects List */}
               {expandedProjects && (
                 <div className="space-y-1 pl-2">
-                  {projects.length === 0 ? (
+                  {activeProjects.length === 0 ? (
                     <p className="text-xs text-sidebar-foreground/50 py-2">No projects yet</p>
                   ) : (
-                    projects.map((project) => (
+                    activeProjects.map((project) => (
                       <div
                         key={project.id}
                         className="group flex items-center justify-between rounded-lg px-3 py-2 hover:bg-sidebar-accent/50 transition-colors"

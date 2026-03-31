@@ -16,7 +16,8 @@ export function ProjectProgress() {
   const activeProjects = getActiveProjects()
 
   const getProjectStats = (projectId: string) => {
-    const projectTasks = tasks.filter((t) => t.projectId === projectId)
+    // Exclude soft-deleted tasks from progress calculation
+    const projectTasks = tasks.filter((t) => t.projectId === projectId && !t.isSoftDeleted)
     const total = projectTasks.length
     const completed = projectTasks.filter((t) => t.status === "done").length
     const inProgress = projectTasks.filter((t) => t.status === "in-progress").length

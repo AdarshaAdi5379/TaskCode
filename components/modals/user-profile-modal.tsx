@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useUserContext } from "@/lib/user-context"
+import { useTheme } from "next-themes"
 import { User, Settings, Palette, Bell, LogOut } from "lucide-react"
 
 interface UserProfileModalProps {
@@ -25,6 +26,7 @@ const accentColors = [
 
 export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) {
   const { user, updateProfile, updateSettings, logout } = useUserContext()
+  const { setTheme } = useTheme()
   const [displayName, setDisplayName] = useState(user?.displayName || "")
   const [email, setEmail] = useState(user?.email || "")
   const [activeTab, setActiveTab] = useState("profile")
@@ -37,6 +39,7 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
   }
 
   const handleThemeChange = (theme: "light" | "dark" | "system") => {
+    setTheme(theme)
     updateSettings({ theme })
   }
 

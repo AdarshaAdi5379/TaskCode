@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Calendar, Flag, CheckCircle2, MessageSquare, Send, Trash2, AtSign } from "lucide-react"
+import { Calendar, Flag, CheckCircle2, MessageSquare, Send, Trash2, AtSign, Link, Zap, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -13,7 +13,8 @@ import { useTaskContext } from "@/lib/task-context"
 import { useUserContext } from "@/lib/user-context"
 import { useProjectContext } from "@/lib/project-context"
 import { useNotificationContext } from "@/lib/notification-context"
-import type { Task, ProjectMember } from "@/lib/types"
+import type { Task, ProjectMember, IssueType, DependencyType } from "@/lib/types"
+import { IssueTypeIcon } from "@/components/tasks/issue-type-icon"
 import { cn } from "@/lib/utils"
 
 interface TaskDetailModalProps {
@@ -30,7 +31,7 @@ const priorityColors: Record<string, string> = {
 }
 
 export function TaskDetailModal({ open, onOpenChange, taskId }: TaskDetailModalProps) {
-  const { tasks, updateTask, addComment, deleteComment, toggleSubTask } = useTaskContext()
+  const { tasks, updateTask, addComment, deleteComment, toggleSubTask, addDependency, removeDependency } = useTaskContext()
   const { user } = useUserContext()
   const { projects } = useProjectContext()
   const { addNotification } = useNotificationContext()
@@ -41,6 +42,10 @@ export function TaskDetailModal({ open, onOpenChange, taskId }: TaskDetailModalP
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState("")
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Dependency state
+  const [depTaskId, setDepTaskId] = useState("")
+  const [depType, setDepType] = useState<DependencyType>("blocks")
   
   const task = tasks.find((t) => t.id === taskId)
   const project = task ? projects.find((p) => p.id === task.projectId) : null
@@ -183,16 +188,21 @@ export function TaskDetailModal({ open, onOpenChange, taskId }: TaskDetailModalP
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <span className={cn(task.status === "done" && "line-through")}>{task.title}</span>
-            <Badge className={priorityColors[task.priority]} variant="outline">
-              {task.priority}
-            </Badge>
-          </DialogTitle>
+              <IssueTypeIcon type={task.issueType ?? "task"} size="md" />
+              <span className={cn(task.status === "done" && "line-through")}>{task.title}</span>
+              <Badge className={priorityColors[task.priority]} variant="outline">
+                {task.priority}
+              </Badge>
+            </DialogTitle>
         </DialogHeader>
 
         <Tabs defaultValue="details" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="dependencies" className="gap-2">
+              <Link className="h-4 w-4" />
+              Deps ({(task.dependencies ?? []).length})
+            </TabsTrigger>
             <TabsTrigger value="comments" className="gap-2">
               <MessageSquare className="h-4 w-4" />
               Comments ({task.comments.length})
@@ -205,9 +215,53 @@ export function TaskDetailModal({ open, onOpenChange, taskId }: TaskDetailModalP
               <textarea
                 value={task.description}
                 onChange={(e) => updateTask(task.id, { description: e.target.value })}
-                className="min-h-24 rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                className="min-h-24 rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring w-full"
                 placeholder="Add a description..."
               />
+            </div>
+
+            {/* Issue type + Story points row */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Issue Type</label>
+                <Select
+                  value={task.issueType ?? "task"}
+                  onValueChange={(v) => updateTask(task.id, { issueType: v as IssueType })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(["task", "bug", "story", "epic"] as IssueType[]).map((t) => (
+                      <SelectItem key={t} value={t}>
+                        <span className="flex items-center gap-2">
+                          <IssueTypeIcon type={t} />
+                          <span className="capitalize">{t}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium flex items-center gap-1">
+                  <Zap className="h-3.5 w-3.5 text-yellow-500" />
+                  Story Points
+                </label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={task.storyPoints ?? ""}
+                  onChange={(e) =>
+                    updateTask(task.id, {
+                      storyPoints: e.target.value ? parseInt(e.target.value, 10) : undefined,
+                    })
+                  }
+                  placeholder="—"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -281,6 +335,94 @@ export function TaskDetailModal({ open, onOpenChange, taskId }: TaskDetailModalP
                 </div>
               </div>
             )}
+          </TabsContent>
+
+          {/* Dependencies tab */}
+          <TabsContent value="dependencies" className="mt-4 space-y-4">
+            {/* Existing dependencies */}
+            {(task.dependencies ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">
+                No dependencies yet. Link this issue to related tasks below.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {(task.dependencies ?? []).map((dep) => (
+                  <div key={dep.id} className="flex items-center justify-between rounded-md border px-3 py-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Badge variant="outline" className="text-xs capitalize">
+                        {dep.type.replace(/-/g, " ")}
+                      </Badge>
+                      <span className="truncate max-w-xs">{dep.taskTitle}</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 shrink-0"
+                      onClick={() => removeDependency(task.id, dep.id)}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add dependency */}
+            <div className="space-y-3 pt-2 border-t">
+              <p className="text-sm font-medium">Add dependency</p>
+              <div className="flex gap-2">
+                <Select
+                  value={depType}
+                  onValueChange={(v) => setDepType(v as DependencyType)}
+                >
+                  <SelectTrigger className="w-40 shrink-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="blocks">Blocks</SelectItem>
+                    <SelectItem value="is-blocked-by">Is blocked by</SelectItem>
+                    <SelectItem value="relates-to">Relates to</SelectItem>
+                    <SelectItem value="duplicates">Duplicates</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={depTaskId}
+                  onValueChange={setDepTaskId}
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select a task…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tasks
+                      .filter((t) => t.id !== task.id && !t.isSoftDeleted && t.projectId === task.projectId)
+                      .map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          <span className="flex items-center gap-2">
+                            <IssueTypeIcon type={t.issueType ?? "task"} />
+                            <span className="truncate">{t.title}</span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  disabled={!depTaskId}
+                  onClick={() => {
+                    const target = tasks.find((t) => t.id === depTaskId)
+                    if (!target) return
+                    addDependency(task.id, {
+                      taskId: target.id,
+                      taskTitle: target.title,
+                      type: depType,
+                    })
+                    setDepTaskId("")
+                  }}
+                >
+                  Add
+                </Button>
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="comments" className="mt-4">

@@ -13,7 +13,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select"
-import { Circle, Plus, Search, X } from "lucide-react"
+import { Circle, CheckCircle2, Loader, Plus, Search, X } from "lucide-react"
 import { useTaskContext } from "@/lib/task-context"
 import type { Task, TaskFilter } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -105,6 +105,7 @@ export function KanbanView({ projectId }: KanbanViewProps) {
       assignees: [],
       labels: [],
       tags: [],
+      issueType: "task",
     })
     
     setNewTaskTitle("")
@@ -247,8 +248,16 @@ export function KanbanView({ projectId }: KanbanViewProps) {
                               }
                               handleStatusChange(task.id, nextStatus[task.status])
                             }}
+                            aria-label={`Cycle status for ${task.title}`}
+                            title={task.status === "done" ? "Mark as To Do" : task.status === "in-progress" ? "Mark as Done" : "Mark as In Progress"}
                           >
-                            <Circle className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                            {task.status === "done" ? (
+                              <CheckCircle2 className="h-4 w-4 text-green-500" />
+                            ) : task.status === "in-progress" ? (
+                              <Loader className="h-4 w-4 text-blue-500" />
+                            ) : (
+                              <Circle className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                            )}
                           </button>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium leading-snug truncate">{task.title}</p>

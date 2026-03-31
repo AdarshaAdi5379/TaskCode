@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,8 +26,15 @@ export function InviteMemberModal({ open, onOpenChange, projectId }: InviteMembe
   const [role, setRole] = useState<"admin" | "member">("member")
   const [copied, setCopied] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [origin, setOrigin] = useState("")
 
-  const projectLink = `${window.location.origin}/projects/${projectId}?invite=${projectId}`
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setOrigin(window.location.origin)
+    }
+  }, [])
+
+  const projectLink = `${origin}/projects/${projectId}?invite=${projectId}`
 
   const handleInvite = (e: React.FormEvent) => {
     e.preventDefault()

@@ -42,7 +42,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         id: DEFAULT_USER_ID,
         email: DEFAULT_USER_EMAIL,
         displayName: "You",
-        role: "user",
+        role: "admin",
         createdAt: new Date(),
         settings: DEFAULT_USER_SETTINGS,
       }

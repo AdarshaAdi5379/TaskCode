@@ -4,11 +4,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { CheckCircle2 } from "lucide-react"
 import { useTaskContext } from "@/lib/task-context"
+import { useUserContext } from "@/lib/user-context"
 
 export function TeamActivity() {
   const { tasks } = useTaskContext()
+  const { user } = useUserContext()
 
   const recentTasks = [...tasks]
+    .filter((t) => !t.isSoftDeleted)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 4)
 
@@ -21,6 +24,15 @@ export function TeamActivity() {
       default:
         return "created"
     }
+  }
+
+  const getDisplayName = (assigneeId: string): string => {
+    // If the assignee is the current user, return their display name
+    if (user && (assigneeId === user.id || assigneeId === "current-user")) {
+      return user.displayName || "You"
+    }
+    // Fallback: return a placeholder (in a real app this would look up the user)
+    return `User ${assigneeId}`
   }
 
   const getInitials = (name: string) => {
@@ -45,13 +57,17 @@ export function TeamActivity() {
 
   const activities =
     recentTasks.length > 0
-      ? recentTasks.map((task) => ({
-          user: task.assignees[0] || "You",
-          action: getActionText(task.status),
-          task: task.title,
-          time: getTimeAgo(task.createdAt),
-          initials: getInitials(task.assignees[0] || "You"),
-        }))
+      ? recentTasks.map((task) => {
+          const assigneeId = task.assignees[0] || (user?.id ?? "current-user")
+          const displayName = getDisplayName(assigneeId)
+          return {
+            user: displayName,
+            action: getActionText(task.status),
+            task: task.title,
+            time: getTimeAgo(task.createdAt),
+            initials: getInitials(displayName),
+          }
+        })
       : [
           { user: "Alex Johnson", action: "completed", task: "API Setup", time: "2 hours ago", initials: "AJ" },
           { user: "Sarah Chen", action: "started", task: "UI Design", time: "4 hours ago", initials: "SC" },

@@ -112,7 +112,9 @@ export function parseNaturalLanguage(input: string): ParsedTask {
 function getNextDayOfWeek(dayOfWeek: number): string {
   const today = new Date()
   const result = new Date(today)
-  result.setDate(today.getDate() + ((dayOfWeek - today.getDay() + 7) % 7))
+  // If today is already that day, go to next week (add 7 days to avoid returning today)
+  const diff = (dayOfWeek - today.getDay() + 7) % 7
+  result.setDate(today.getDate() + (diff === 0 ? 7 : diff))
   return result.toISOString().split("T")[0]
 }
 

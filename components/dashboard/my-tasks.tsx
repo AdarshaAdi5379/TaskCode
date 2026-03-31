@@ -38,22 +38,29 @@ export function MyTasks() {
     return priorityOrder[b.priority] - priorityOrder[a.priority]
   })
 
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+
   const overdueTasks = sortedTasks.filter((task) => {
     if (!task.dueDate) return false
-    return new Date(task.dueDate) < new Date()
+    // Strictly before today (midnight) = overdue
+    return new Date(task.dueDate) < today
   })
 
   const todayTasks = sortedTasks.filter((task) => {
     if (!task.dueDate) return false
-    const today = new Date()
-    return new Date(task.dueDate).toDateString() === today.toDateString()
+    const dueDate = new Date(task.dueDate)
+    // On or after midnight today AND before midnight tomorrow = due today
+    return dueDate >= today && dueDate < tomorrow
   })
 
   const upcomingTasks = sortedTasks.filter((task) => {
     if (!task.dueDate) return false
-    const today = new Date()
     const dueDate = new Date(task.dueDate)
-    return dueDate > today
+    // Strictly after today (on or after tomorrow midnight) = upcoming
+    return dueDate >= tomorrow
   })
 
   const noDueDateTasks = sortedTasks.filter((task) => !task.dueDate)

@@ -88,7 +88,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     }
   }, [projects, isHydrated])
 
-  const addProject = useCallback((newProjectData: Omit<Project, "id" | "createdAt" | "updatedAt" | "isArchived" | "members" | "settings">) => {
+  const addProject = useCallback((newProjectData: Omit<Project, "id" | "createdAt" | "updatedAt" | "isArchived" | "members" | "settings" | "ownerId">) => {
     const project: Project = {
       ...newProjectData,
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),

@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { createContext, useContext, useState, useEffect, useCallback } from "react"
-import type { Task, TaskContextType, SubTask, Comment, TaskSortBy, TaskFilter } from "./types"
+import type { Task, TaskContextType, SubTask, Comment, TaskSortBy, TaskFilter, TaskDependency } from "./types"
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined)
 
@@ -35,6 +35,8 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
             ...c,
             createdAt: new Date(c.createdAt),
           })) || [],
+          dependencies: t.dependencies ?? [],
+          issueType: t.issueType ?? "task",
         })))
       } catch (e) {
         console.error("[TaskZen] Failed to load tasks from localStorage:", e)
@@ -49,7 +51,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     }
   }, [tasks, isHydrated])
 
-  const addTask = useCallback((newTaskData: Omit<Task, "id" | "createdAt" | "updatedAt" | "isSoftDeleted" | "deletedAt" | "subtasks" | "isCompleted" | "completedAt" | "comments">) => {
+  const addTask = useCallback((newTaskData: Omit<Task, "id" | "createdAt" | "updatedAt" | "isSoftDeleted" | "deletedAt" | "subtasks" | "isCompleted" | "completedAt" | "comments" | "dependencies">) => {
     const task: Task = {
       ...newTaskData,
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
@@ -59,6 +61,8 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       subtasks: [],
       isCompleted: false,
       comments: [],
+      dependencies: [],
+      issueType: newTaskData.issueType ?? "task",
     }
     setTasks((prev) => [task, ...prev])
   }, [])
@@ -147,6 +151,8 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     const now = new Date()
     return tasks.filter((task) => {
       if (!task.dueDate || task.status === "done" || task.isSoftDeleted) return false
+      // Exclude snoozed tasks — they are intentionally deferred
+      if (task.snoozedUntil && new Date(task.snoozedUntil) > now) return false
       return new Date(task.dueDate) < now
     })
   }, [tasks])
@@ -356,6 +362,49 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     }))
   }, [])
 
+  // Backlog: tasks with no sprint assigned
+  const getBacklogTasks = useCallback((projectId: string) => {
+    return tasks.filter(
+      (t) => t.projectId === projectId && !t.isSoftDeleted && !t.sprintId
+    )
+  }, [tasks])
+
+  // Sprint tasks
+  const getSprintTasks = useCallback((sprintId: string) => {
+    return tasks.filter((t) => t.sprintId === sprintId && !t.isSoftDeleted)
+  }, [tasks])
+
+  // Dependencies
+  const addDependency = useCallback((taskId: string, dep: Omit<TaskDependency, "id">) => {
+    const newDep: TaskDependency = {
+      ...dep,
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+    }
+    setTasks((prev) => prev.map((task) => {
+      if (task.id === taskId) {
+        return {
+          ...task,
+          dependencies: [...(task.dependencies ?? []), newDep],
+          updatedAt: new Date(),
+        }
+      }
+      return task
+    }))
+  }, [])
+
+  const removeDependency = useCallback((taskId: string, depId: string) => {
+    setTasks((prev) => prev.map((task) => {
+      if (task.id === taskId) {
+        return {
+          ...task,
+          dependencies: (task.dependencies ?? []).filter((d) => d.id !== depId),
+          updatedAt: new Date(),
+        }
+      }
+      return task
+    }))
+  }, [])
+
   return (
     <TaskContext.Provider value={{
       tasks,
@@ -374,12 +423,16 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       getOverdueTasks,
       getTodaysTasks,
       getMyTasks,
+      getBacklogTasks,
+      getSprintTasks,
       createSubTask,
       updateSubTask,
       deleteSubTask,
       toggleSubTask,
       addComment,
       deleteComment,
+      addDependency,
+      removeDependency,
       sortTasks,
       filterTasks,
       searchTasks,

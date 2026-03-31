@@ -139,10 +139,11 @@ export function BillingProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true)
     await new Promise((resolve) => setTimeout(resolve, 500))
 
+    // Mark as cancelling at period end but keep status "active" until then
     setSubscription((prev) => prev ? {
       ...prev,
       cancelAtPeriodEnd: true,
-      status: "cancelled",
+      status: "active",
     } : null)
 
     setIsLoading(false)

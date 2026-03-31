@@ -26,7 +26,7 @@ interface HeaderProps {
 }
 
 export function Header({ onSidebarToggle, sidebarOpen }: HeaderProps) {
-  const { theme, setTheme } = useTheme()
+  const { theme, resolvedTheme, setTheme } = useTheme()
   const [searchValue, setSearchValue] = useState("")
   const [showResults, setShowResults] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -43,8 +43,9 @@ export function Header({ onSidebarToggle, sidebarOpen }: HeaderProps) {
   const filteredTasks = searchValue.trim()
     ? tasks.filter(
         (task) =>
-          task.title.toLowerCase().includes(searchValue.toLowerCase()) ||
-          task.description.toLowerCase().includes(searchValue.toLowerCase()),
+          !task.isSoftDeleted &&
+          (task.title.toLowerCase().includes(searchValue.toLowerCase()) ||
+          (task.description ?? "").toLowerCase().includes(searchValue.toLowerCase())),
       ).slice(0, 5)
     : []
 
@@ -146,10 +147,10 @@ export function Header({ onSidebarToggle, sidebarOpen }: HeaderProps) {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
               aria-label="Toggle theme"
             >
-              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              {resolvedTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
           )}
 

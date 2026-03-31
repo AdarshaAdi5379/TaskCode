@@ -5,6 +5,7 @@ import "./globals.css"
 import { ThemeProvider } from "next-themes"
 import { TaskProvider } from "@/lib/task-context"
 import { ProjectProvider } from "@/lib/project-context"
+import { SprintProvider } from "@/lib/sprint-context"
 import { UserProvider } from "@/lib/user-context"
 import { NotificationProvider } from "@/lib/notification-context"
 import { ConnectionProvider, ConnectionStatus } from "@/lib/connection-context"
@@ -54,13 +55,15 @@ export default function RootLayout({
                   <ToastProvider>
                     <AccentThemeProvider>
                       <NotificationProvider>
-                        <ProjectProvider>
-                          <TaskProvider>
-                            {children}
-                            <Analytics />
-                            <ConnectionStatus />
-                          </TaskProvider>
-                        </ProjectProvider>
+                          <ProjectProvider>
+                            <SprintProvider>
+                              <TaskProvider>
+                                {children}
+                                <Analytics />
+                                <ConnectionStatus />
+                              </TaskProvider>
+                            </SprintProvider>
+                          </ProjectProvider>
                       </NotificationProvider>
                     </AccentThemeProvider>
                   </ToastProvider>

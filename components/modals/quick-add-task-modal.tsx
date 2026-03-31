@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -35,6 +35,7 @@ export function QuickAddTaskModal({ open, onOpenChange }: QuickAddTaskModalProps
   }>({})
   const { addTask } = useTaskContext()
   const { projects } = useProjectContext()
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (open && projects.length > 0 && !projectId) {
@@ -54,12 +55,15 @@ export function QuickAddTaskModal({ open, onOpenChange }: QuickAddTaskModalProps
   const analyzeInput = (input: string) => {
     if (!input.trim() || input.length < 5) {
       setDetectedInfo({})
+      setIsAnalyzing(false)
       return
     }
 
+    // Cancel previous pending analysis
+    if (debounceRef.current) clearTimeout(debounceRef.current)
     setIsAnalyzing(true)
 
-    setTimeout(() => {
+    debounceRef.current = setTimeout(() => {
       try {
         const parsed = parseNaturalLanguage(input)
         const suggestedPriority = suggestPriority(input)
@@ -95,7 +99,7 @@ export function QuickAddTaskModal({ open, onOpenChange }: QuickAddTaskModalProps
         console.error("[TaskZen] Error parsing input:", e)
       }
       setIsAnalyzing(false)
-    }, 300)
+    }, 350)
   }
 
   const handleTitleChange = (value: string) => {
@@ -120,6 +124,7 @@ export function QuickAddTaskModal({ open, onOpenChange }: QuickAddTaskModalProps
         assignees: [],
         labels,
         tags: [],
+        issueType: "task",
       })
       setTitle("")
       setDescription("")

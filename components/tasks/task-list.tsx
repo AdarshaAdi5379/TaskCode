@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -35,6 +35,7 @@ import { ConfirmDialog } from "@/components/ui/alert-dialog"
 
 interface TaskListProps {
   projectId: string
+  onCreateTask?: () => void
 }
 
 const priorityStyles: Record<string, string> = {
@@ -44,7 +45,7 @@ const priorityStyles: Record<string, string> = {
   critical: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
 }
 
-export function TaskList({ projectId }: TaskListProps) {
+export function TaskList({ projectId, onCreateTask }: TaskListProps) {
   const { 
     tasks, 
     updateTask, 
@@ -71,6 +72,7 @@ export function TaskList({ projectId }: TaskListProps) {
   const [detailModalTaskId, setDetailModalTaskId] = useState<string | null>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null)
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const projectTasks = getTasksByProject(projectId)
 
@@ -179,7 +181,7 @@ export function TaskList({ projectId }: TaskListProps) {
             </div>
             <h3 className="text-lg font-medium mb-1">No tasks yet</h3>
             <p className="text-muted-foreground mb-4">Get started by creating your first task</p>
-            <Button onClick={() => window.dispatchEvent(new CustomEvent('open-quick-add'))}>
+            <Button onClick={() => onCreateTask?.()}>
               Create Task
             </Button>
           </div>
@@ -337,11 +339,21 @@ export function TaskList({ projectId }: TaskListProps) {
                     ) : (
                       <p 
                         className={cn(
-                          "cursor-pointer hover:text-primary",
+                          "cursor-pointer hover:text-primary select-none",
                           task.status === "done" && "line-through text-muted-foreground"
                         )}
-                        onClick={() => startEditing(task)}
-                        onDoubleClick={() => setDetailModalTaskId(task.id)}
+                        onClick={() => {
+                          // Single click: open detail modal (with 200ms delay to detect double-click)
+                          if (clickTimerRef.current) clearTimeout(clickTimerRef.current)
+                          clickTimerRef.current = setTimeout(() => {
+                            setDetailModalTaskId(task.id)
+                          }, 200)
+                        }}
+                        onDoubleClick={() => {
+                          // Double click: cancel single-click action and start inline editing
+                          if (clickTimerRef.current) clearTimeout(clickTimerRef.current)
+                          startEditing(task)
+                        }}
                       >
                         {task.title}
                       </p>
