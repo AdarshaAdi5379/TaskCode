@@ -1,18 +1,31 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useMemo, useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Header } from "./header"
 import { Sidebar } from "./sidebar"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { QuickAddTaskModal } from "@/components/modals/quick-add-task-modal"
-import { useProjectContext } from "@/lib/project-context"
+import { useUserContext } from "@/lib/user-context"
+import { isSupabaseConfigured } from "@/lib/supabase/client"
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showQuickAdd, setShowQuickAdd] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const router = useRouter()
+  const { isAuthenticated, isLoading } = useUserContext()
+  const supabaseEnabled = useMemo(() => isSupabaseConfigured(), [])
+
+  useEffect(() => {
+    if (!supabaseEnabled) return
+    if (isLoading) return
+    if (!isAuthenticated) {
+      router.replace("/login")
+    }
+  }, [supabaseEnabled, isAuthenticated, isLoading, router])
 
   useEffect(() => {
     const checkMobile = () => {
@@ -27,6 +40,14 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
     if (sidebarOpen) {
       setSidebarOpen(false    )
     }
+  }
+
+  if (supabaseEnabled && (isLoading || !isAuthenticated)) {
+    return (
+      <div className="h-screen flex items-center justify-center text-sm text-muted-foreground">
+        Loading...
+      </div>
+    )
   }
 
   return (

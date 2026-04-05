@@ -3,6 +3,7 @@
 import type React from "react"
 import { createContext, useContext, useState, useEffect, useCallback } from "react"
 import type { AdminContextType, AdminUser, AuditLog, SystemMetrics, UserRole } from "./types"
+import { useUserContext } from "./user-context"
 
 const MOCK_ADMIN_USERS: AdminUser[] = [
   {
@@ -125,6 +126,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
   const [metrics, setMetrics] = useState<SystemMetrics>(DEFAULT_METRICS)
   const [isAdmin, setIsAdmin] = useState(false)
+  const { user } = useUserContext()
 
   useEffect(() => {
     const stored = localStorage.getItem("taskzen-admin-data")
@@ -146,16 +148,11 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       setMetrics(DEFAULT_METRICS)
     }
 
-    const adminCheck = localStorage.getItem("taskzen-user")
-    if (adminCheck) {
-      try {
-        const user = JSON.parse(adminCheck)
-        setIsAdmin(user.role === "admin" || user.role === "superadmin")
-      } catch {
-        setIsAdmin(false)
-      }
-    }
   }, [])
+
+  useEffect(() => {
+    setIsAdmin(user?.role === "admin" || (user as any)?.role === "superadmin")
+  }, [user])
 
   useEffect(() => {
     if (users.length > 0) {

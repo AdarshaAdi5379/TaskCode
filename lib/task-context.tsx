@@ -1,8 +1,11 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useState, useEffect, useCallback } from "react"
+import { createContext, useContext, useMemo, useState, useEffect, useCallback } from "react"
 import type { Task, TaskContextType, SubTask, Comment, TaskSortBy, TaskFilter, TaskDependency } from "./types"
+import { useUserContext } from "./user-context"
+import { getSupabaseBrowserClient, isSupabaseConfigured } from "./supabase/client"
+import { deserializeTask, serializeTask } from "./supabase/serializers"
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined)
 
@@ -15,8 +18,11 @@ const DEFAULT_PROJECT_SETTINGS = {
 export function TaskProvider({ children }: { children: React.ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [isHydrated, setIsHydrated] = useState(false)
+  const { user, isAuthenticated, isLoading } = useUserContext()
+  const useSupabase = useMemo(() => isSupabaseConfigured(), [])
 
   useEffect(() => {
+    if (useSupabase) return
     const stored = localStorage.getItem("taskzen-tasks")
     if (stored) {
       try {
@@ -43,13 +49,54 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       }
     }
     setIsHydrated(true)
-  }, [])
+  }, [useSupabase])
 
   useEffect(() => {
+    if (!useSupabase) return
+    if (isLoading) return
+
+    if (!isAuthenticated || !user) {
+      setTasks([])
+      setIsHydrated(true)
+      return
+    }
+
+    let cancelled = false
+    const supabase = getSupabaseBrowserClient()
+
+    const load = async () => {
+      setIsHydrated(false)
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("data")
+        .order("created_at", { ascending: false })
+
+      if (cancelled) return
+
+      if (error) {
+        console.error("[TaskZen] Failed to load tasks from Supabase:", error)
+        setTasks([])
+        setIsHydrated(true)
+        return
+      }
+
+      setTasks((data ?? []).map((row: any) => deserializeTask(row.data)))
+      setIsHydrated(true)
+    }
+
+    load()
+
+    return () => {
+      cancelled = true
+    }
+  }, [useSupabase, isAuthenticated, isLoading, user?.id])
+
+  useEffect(() => {
+    if (useSupabase) return
     if (isHydrated) {
       localStorage.setItem("taskzen-tasks", JSON.stringify(tasks))
     }
-  }, [tasks, isHydrated])
+  }, [tasks, isHydrated, useSupabase])
 
   const addTask = useCallback((newTaskData: Omit<Task, "id" | "createdAt" | "updatedAt" | "isSoftDeleted" | "deletedAt" | "subtasks" | "isCompleted" | "completedAt" | "comments" | "dependencies">) => {
     const task: Task = {
@@ -65,9 +112,11 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       issueType: newTaskData.issueType ?? "task",
     }
     setTasks((prev) => [task, ...prev])
-  }, [])
+    if (useSupabase && user) void persistTaskToSupabase(task, user.id)
+  }, [useSupabase, user])
 
   const updateTask = useCallback((id: string, updates: Partial<Task>) => {
+    let updated: Task | null = null
     setTasks((prev) => prev.map((task) => {
       if (task.id === id) {
         const updatedTask = { ...task, ...updates, updatedAt: new Date() }
@@ -81,43 +130,53 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
           updatedTask.completedAt = undefined
         }
         
+        updated = updatedTask
         return updatedTask
       }
       return task
     }))
-  }, [])
+    if (useSupabase && user && updated) void persistTaskToSupabase(updated, user.id)
+  }, [useSupabase, user])
 
   const deleteTask = useCallback((id: string) => {
     setTasks((prev) => prev.filter((task) => task.id !== id))
-  }, [])
+    if (useSupabase) void deleteTaskFromSupabase(id)
+  }, [useSupabase])
 
   const softDeleteTask = useCallback((id: string) => {
-    setTasks((prev) => prev.map((task) => 
-      task.id === id 
-        ? { ...task, isSoftDeleted: true, deletedAt: new Date(), updatedAt: new Date() }
-        : task
+    let updated: Task | null = null
+    setTasks((prev) => prev.map((task) =>
+      task.id === id
+        ? (updated = { ...task, isSoftDeleted: true, deletedAt: new Date(), updatedAt: new Date() })
+        : task,
     ))
-  }, [])
+    if (useSupabase && user && updated) void persistTaskToSupabase(updated, user.id)
+  }, [useSupabase, user])
 
   const restoreTask = useCallback((id: string) => {
-    setTasks((prev) => prev.map((task) => 
-      task.id === id 
-        ? { ...task, isSoftDeleted: false, deletedAt: undefined, updatedAt: new Date() }
-        : task
+    let updated: Task | null = null
+    setTasks((prev) => prev.map((task) =>
+      task.id === id
+        ? (updated = { ...task, isSoftDeleted: false, deletedAt: undefined, updatedAt: new Date() })
+        : task,
     ))
-  }, [])
+    if (useSupabase && user && updated) void persistTaskToSupabase(updated, user.id)
+  }, [useSupabase, user])
 
   const permanentDeleteTask = useCallback((id: string) => {
     setTasks((prev) => prev.filter((task) => task.id !== id))
-  }, [])
+    if (useSupabase) void deleteTaskFromSupabase(id)
+  }, [useSupabase])
 
   const snoozeTask = useCallback((id: string, until: string) => {
-    setTasks((prev) => prev.map((task) => 
-      task.id === id 
-        ? { ...task, snoozedUntil: until, updatedAt: new Date() }
-        : task
+    let updated: Task | null = null
+    setTasks((prev) => prev.map((task) =>
+      task.id === id
+        ? (updated = { ...task, snoozedUntil: until, updatedAt: new Date() })
+        : task,
     ))
-  }, [])
+    if (useSupabase && user && updated) void persistTaskToSupabase(updated, user.id)
+  }, [useSupabase, user])
 
   const getTasksByProject = useCallback((projectId: string) => {
     return tasks.filter((task) => task.projectId === projectId && !task.isSoftDeleted)
@@ -258,47 +317,57 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       isCompleted: false,
     }
     
+    let updated: Task | null = null
     setTasks((prev) => prev.map((task) => {
       if (task.id === parentTaskId) {
-        return {
+        updated = {
           ...task,
           subtasks: [...task.subtasks, newSubTask],
           updatedAt: new Date(),
         }
+        return updated
       }
       return task
     }))
-  }, [])
+    if (useSupabase && user && updated) void persistTaskToSupabase(updated, user.id)
+  }, [useSupabase, user])
 
   const updateSubTask = useCallback((parentTaskId: string, subtaskId: string, updates: Partial<SubTask>) => {
+    let updated: Task | null = null
     setTasks((prev) => prev.map((task) => {
       if (task.id === parentTaskId) {
-        return {
+        updated = {
           ...task,
           subtasks: task.subtasks.map((st) => 
             st.id === subtaskId ? { ...st, ...updates } : st
           ),
           updatedAt: new Date(),
         }
+        return updated
       }
       return task
     }))
-  }, [])
+    if (useSupabase && user && updated) void persistTaskToSupabase(updated, user.id)
+  }, [useSupabase, user])
 
   const deleteSubTask = useCallback((parentTaskId: string, subtaskId: string) => {
+    let updated: Task | null = null
     setTasks((prev) => prev.map((task) => {
       if (task.id === parentTaskId) {
-        return {
+        updated = {
           ...task,
           subtasks: task.subtasks.filter((st) => st.id !== subtaskId),
           updatedAt: new Date(),
         }
+        return updated
       }
       return task
     }))
-  }, [])
+    if (useSupabase && user && updated) void persistTaskToSupabase(updated, user.id)
+  }, [useSupabase, user])
 
   const toggleSubTask = useCallback((parentTaskId: string, subtaskId: string) => {
+    let updated: Task | null = null
     setTasks((prev) => prev.map((task) => {
       if (task.id === parentTaskId) {
         const updatedSubtasks = task.subtasks.map((st) => {
@@ -316,7 +385,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         // Check if all subtasks are completed
         const allCompleted = updatedSubtasks.length > 0 && updatedSubtasks.every((st) => st.isCompleted)
         
-        return {
+        updated = {
           ...task,
           subtasks: updatedSubtasks,
           status: allCompleted ? "done" : task.status,
@@ -324,10 +393,12 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
           completedAt: allCompleted ? new Date() : task.completedAt,
           updatedAt: new Date(),
         }
+        return updated
       }
       return task
     }))
-  }, [])
+    if (useSupabase && user && updated) void persistTaskToSupabase(updated, user.id)
+  }, [useSupabase, user])
 
   // Comment functions
   const addComment = useCallback((taskId: string, commentData: Omit<Comment, "id" | "createdAt">) => {
@@ -337,30 +408,36 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       createdAt: new Date(),
     }
     
+    let updated: Task | null = null
     setTasks((prev) => prev.map((task) => {
       if (task.id === taskId) {
-        return {
+        updated = {
           ...task,
           comments: [...task.comments, newComment],
           updatedAt: new Date(),
         }
+        return updated
       }
       return task
     }))
-  }, [])
+    if (useSupabase && user && updated) void persistTaskToSupabase(updated, user.id)
+  }, [useSupabase, user])
 
   const deleteComment = useCallback((taskId: string, commentId: string) => {
+    let updated: Task | null = null
     setTasks((prev) => prev.map((task) => {
       if (task.id === taskId) {
-        return {
+        updated = {
           ...task,
           comments: task.comments.filter((c) => c.id !== commentId),
           updatedAt: new Date(),
         }
+        return updated
       }
       return task
     }))
-  }, [])
+    if (useSupabase && user && updated) void persistTaskToSupabase(updated, user.id)
+  }, [useSupabase, user])
 
   // Backlog: tasks with no sprint assigned
   const getBacklogTasks = useCallback((projectId: string) => {
@@ -380,30 +457,36 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       ...dep,
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
     }
+    let updated: Task | null = null
     setTasks((prev) => prev.map((task) => {
       if (task.id === taskId) {
-        return {
+        updated = {
           ...task,
           dependencies: [...(task.dependencies ?? []), newDep],
           updatedAt: new Date(),
         }
+        return updated
       }
       return task
     }))
-  }, [])
+    if (useSupabase && user && updated) void persistTaskToSupabase(updated, user.id)
+  }, [useSupabase, user])
 
   const removeDependency = useCallback((taskId: string, depId: string) => {
+    let updated: Task | null = null
     setTasks((prev) => prev.map((task) => {
       if (task.id === taskId) {
-        return {
+        updated = {
           ...task,
           dependencies: (task.dependencies ?? []).filter((d) => d.id !== depId),
           updatedAt: new Date(),
         }
+        return updated
       }
       return task
     }))
-  }, [])
+    if (useSupabase && user && updated) void persistTaskToSupabase(updated, user.id)
+  }, [useSupabase, user])
 
   return (
     <TaskContext.Provider value={{
@@ -448,4 +531,30 @@ export function useTaskContext() {
     throw new Error("useTaskContext must be used within TaskProvider")
   }
   return context
+}
+
+async function persistTaskToSupabase(task: Task, userId: string): Promise<void> {
+  try {
+    const supabase = getSupabaseBrowserClient()
+    const { error } = await supabase.from("tasks").upsert({
+      id: task.id,
+      user_id: userId,
+      project_id: task.projectId,
+      data: serializeTask(task),
+      updated_at: new Date().toISOString(),
+    })
+    if (error) console.error("[TaskZen] Failed to persist task:", error)
+  } catch (e) {
+    console.error("[TaskZen] Failed to persist task:", e)
+  }
+}
+
+async function deleteTaskFromSupabase(taskId: string): Promise<void> {
+  try {
+    const supabase = getSupabaseBrowserClient()
+    const { error } = await supabase.from("tasks").delete().eq("id", taskId)
+    if (error) console.error("[TaskZen] Failed to delete task:", error)
+  } catch (e) {
+    console.error("[TaskZen] Failed to delete task:", e)
+  }
 }

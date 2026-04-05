@@ -10,6 +10,12 @@
 This repository will stay in sync with your deployed chats on [v0.app](https://v0.app).
 Any changes you make to your deployed app will be automatically pushed to this repository from [v0.app](https://v0.app).
 
+## Database (Supabase)
+
+This project can run with local-only storage (no DB), or with Supabase Postgres + Auth.
+
+- Setup guide: `supabase/SETUP.md`
+
 ## Deployment
 
 Your project is live at:

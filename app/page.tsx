@@ -5,9 +5,7 @@ import { MyTasks } from "@/components/dashboard/my-tasks"
 import { ProjectProgress } from "@/components/dashboard/project-progress"
 import { TeamActivity } from "@/components/dashboard/team-activity"
 import { MainLayout } from "@/components/layout/main-layout"
-import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
-import Link from "next/link"
+import { ViewProjectsButton } from "@/components/dashboard/view-projects-button"
 
 export const dynamic = "force-dynamic"
 
@@ -20,12 +18,7 @@ export default function DashboardPage() {
             <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
             <p className="text-muted-foreground">Welcome back! Here's your task overview.</p>
           </div>
-          <Link href="/projects/1">
-            <Button className="gap-2 bg-primary hover:bg-primary/90">
-              <Plus className="h-4 w-4" />
-              View Projects
-            </Button>
-          </Link>
+          <ViewProjectsButton />
         </div>
 
         <KPICards />

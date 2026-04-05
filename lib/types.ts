@@ -179,8 +179,11 @@ export interface NotificationContextType {
 export interface UserContextType {
   user: User | null
   isAuthenticated: boolean
+  isLoading: boolean
+  signInWithPassword: (email: string, password: string) => Promise<{ error?: string }>
+  signUpWithPassword: (email: string, password: string, displayName?: string) => Promise<{ error?: string }>
   login: (email: string, name: string) => void
-  logout: () => void
+  logout: () => void | Promise<void>
   updateProfile: (updates: Partial<Pick<User, "displayName" | "photoURL">>) => void
   updateSettings: (settings: Partial<UserSettings>) => void
 }
