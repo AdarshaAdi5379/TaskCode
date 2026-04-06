@@ -105,6 +105,7 @@ export interface Project {
   name: string
   color: string
   description: string
+  icon?: string
   createdAt: Date
   updatedAt?: Date
   isArchived: boolean
