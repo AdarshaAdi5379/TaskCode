@@ -135,6 +135,10 @@ export interface UserSettings {
     collapseBehavior?: "remember" | "alwaysCollapsed" | "alwaysExpanded"
     defaultState?: "collapsed" | "expanded"
   }
+  security?: {
+    // 0 means "never"
+    sessionTimeoutMinutes?: number
+  }
   notifications: {
     email: boolean
     push: boolean

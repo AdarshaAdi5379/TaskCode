@@ -10,6 +10,9 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
     collapseBehavior: "remember",
     defaultState: "expanded",
   },
+  security: {
+    sessionTimeoutMinutes: 0,
+  },
 
   // Notifications
   notifications: {
