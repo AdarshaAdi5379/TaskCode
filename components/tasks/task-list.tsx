@@ -32,6 +32,7 @@ import type { Task, TaskSortBy, TaskFilter } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { TaskDetailModal } from "./task-detail-modal"
 import { ConfirmDialog } from "@/components/ui/alert-dialog"
+import { useSettings } from "@/lib/settings/settings-context"
 
 interface TaskListProps {
   projectId: string
@@ -58,6 +59,7 @@ export function TaskList({ projectId, onCreateTask }: TaskListProps) {
     searchTasks 
   } = useTaskContext()
   const { addToast } = useToast()
+  const { workspaceSettings } = useSettings()
   
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState<TaskSortBy>("createdAt")
@@ -75,6 +77,7 @@ export function TaskList({ projectId, onCreateTask }: TaskListProps) {
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const projectTasks = getTasksByProject(projectId)
+  const trashRetentionDays = workspaceSettings.trashRetentionDays ?? 30
 
   const filteredAndSortedTasks = useMemo(() => {
     let result = projectTasks
@@ -438,7 +441,7 @@ export function TaskList({ projectId, onCreateTask }: TaskListProps) {
         onOpenChange={setDeleteConfirmOpen}
         onConfirm={handleDelete}
         title="Delete Task"
-        description="Are you sure you want to delete this task? It will be moved to trash and can be restored within 30 days."
+        description={`Are you sure you want to delete this task? It will be moved to trash and can be restored within ${trashRetentionDays} days.`}
         confirmText="Delete"
         cancelText="Cancel"
         variant="destructive"

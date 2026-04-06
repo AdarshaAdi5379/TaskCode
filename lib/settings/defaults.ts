@@ -48,6 +48,7 @@ export const DEFAULT_WORKSPACE_SETTINGS: WorkspaceSettings = {
   description: "",
   timezone: "UTC",
   workingDays: ["mon", "tue", "wed", "thu", "fri"],
+  trashRetentionDays: 30,
   permissions: {
     canCreateProjects: "editor",
     canInviteUsers: "editor",

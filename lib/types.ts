@@ -182,6 +182,7 @@ export interface WorkspaceSettings {
   description: string
   timezone: string
   workingDays: WorkspaceWorkingDay[]
+  trashRetentionDays?: 7 | 30 | 60
   permissions: {
     canCreateProjects: "owner" | "editor" | "viewer"
     canInviteUsers: "owner" | "editor" | "viewer"
