@@ -25,6 +25,12 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
       defaultView: "month",
     },
   },
+  integrations: {
+    googleCalendar: { connected: false },
+    slack: { connected: false },
+    github: { connected: false },
+    jira: { connected: false },
+  },
 
   // Notifications
   notifications: {

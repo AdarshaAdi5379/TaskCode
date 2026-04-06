@@ -151,6 +151,12 @@ export interface UserSettings {
       defaultView?: "month" | "week" | "day"
     }
   }
+  integrations?: {
+    googleCalendar?: { connected: boolean; connectedAt?: string }
+    slack?: { connected: boolean; connectedAt?: string }
+    github?: { connected: boolean; connectedAt?: string }
+    jira?: { connected: boolean; connectedAt?: string }
+  }
   notifications: {
     email: boolean
     push: boolean
