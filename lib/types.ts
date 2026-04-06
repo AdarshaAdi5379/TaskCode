@@ -139,6 +139,18 @@ export interface UserSettings {
     // 0 means "never"
     sessionTimeoutMinutes?: number
   }
+  productivity?: {
+    autoAssignCreator?: boolean
+    defaultPriority?: Task["priority"]
+    defaultDueDateOffsetDays?: number
+    enableSubtasks?: boolean
+    enableRecurringTasks?: boolean
+    enableReminders?: boolean
+    calendar?: {
+      firstDayOfWeek?: "sun" | "mon"
+      defaultView?: "month" | "week" | "day"
+    }
+  }
   notifications: {
     email: boolean
     push: boolean

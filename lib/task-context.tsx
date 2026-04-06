@@ -99,6 +99,29 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   }, [tasks, isHydrated, useSupabase])
 
   const addTask = useCallback((newTaskData: Omit<Task, "id" | "createdAt" | "updatedAt" | "isSoftDeleted" | "deletedAt" | "subtasks" | "isCompleted" | "completedAt" | "comments" | "dependencies">) => {
+    const productivity = user?.settings.productivity
+    const offsetDays = productivity?.defaultDueDateOffsetDays ?? 0
+
+    const normalizedDueDate = (() => {
+      const due = typeof newTaskData.dueDate === "string" && newTaskData.dueDate.trim()
+        ? newTaskData.dueDate
+        : undefined
+      if (due) return due
+      if (!offsetDays || offsetDays <= 0) return undefined
+      const d = new Date()
+      d.setHours(0, 0, 0, 0)
+      d.setDate(d.getDate() + offsetDays)
+      return d.toISOString().slice(0, 10)
+    })()
+
+    const normalizedAssignees = (() => {
+      const assignees = newTaskData.assignees ?? []
+      if (assignees.length > 0) return assignees
+      if (!productivity?.autoAssignCreator) return assignees
+      if (!user?.id) return assignees
+      return [user.id]
+    })()
+
     const task: Task = {
       ...newTaskData,
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
@@ -110,6 +133,8 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       comments: [],
       dependencies: [],
       issueType: newTaskData.issueType ?? "task",
+      dueDate: normalizedDueDate,
+      assignees: normalizedAssignees,
     }
     setTasks((prev) => [task, ...prev])
     if (useSupabase && user) void persistTaskToSupabase(task, user.id)

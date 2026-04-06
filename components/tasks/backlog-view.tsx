@@ -34,6 +34,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { useTaskContext } from "@/lib/task-context"
 import { useSprintContext } from "@/lib/sprint-context"
+import { useUserContext } from "@/lib/user-context"
 import type { Task, Sprint, IssueType } from "@/lib/types"
 import { IssueTypeIcon } from "@/components/tasks/issue-type-icon"
 import { cn } from "@/lib/utils"
@@ -334,6 +335,7 @@ function SprintSection({
 export function BacklogView({ projectId }: BacklogViewProps) {
   const { tasks, updateTask, getBacklogTasks, getSprintTasks, addTask } = useTaskContext()
   const { getSprintsByProject } = useSprintContext()
+  const { user } = useUserContext()
 
   const [showCreateSprint, setShowCreateSprint] = useState(false)
   const [newTaskTitle, setNewTaskTitle] = useState("")
@@ -359,7 +361,7 @@ export function BacklogView({ projectId }: BacklogViewProps) {
       description: "",
       projectId,
       status: "todo",
-      priority: "medium",
+      priority: user?.settings.productivity?.defaultPriority ?? "medium",
       assignees: [],
       labels: [],
       issueType: newTaskType,

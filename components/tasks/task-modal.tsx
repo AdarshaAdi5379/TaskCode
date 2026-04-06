@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useTaskContext } from "@/lib/task-context"
+import { useUserContext } from "@/lib/user-context"
 
 interface TaskModalProps {
   open: boolean
@@ -18,10 +19,12 @@ interface TaskModalProps {
 
 export function TaskModal({ open, onOpenChange, projectId }: TaskModalProps) {
   const { addTask } = useTaskContext()
+  const { user } = useUserContext()
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [status, setStatus] = useState("todo")
-  const [priority, setPriority] = useState("medium")
+  const defaultPriority = user?.settings.productivity?.defaultPriority ?? "medium"
+  const [priority, setPriority] = useState(defaultPriority)
   const [dueDate, setDueDate] = useState("")
   const [assignees, setAssignees] = useState<string[]>([])
   const [labels, setLabels] = useState<string[]>([])
@@ -69,8 +72,8 @@ export function TaskModal({ open, onOpenChange, projectId }: TaskModalProps) {
       title,
       description,
       status: (status as "todo" | "in-progress" | "done") || "todo",
-      priority: (priority as "low" | "medium" | "high" | "critical") || "medium",
-      dueDate,
+      priority: (priority as "low" | "medium" | "high" | "critical") || defaultPriority,
+      dueDate: dueDate || undefined,
       assignees,
       labels,
       projectId,
@@ -81,7 +84,7 @@ export function TaskModal({ open, onOpenChange, projectId }: TaskModalProps) {
     setTitle("")
     setDescription("")
     setStatus("todo")
-    setPriority("medium")
+    setPriority(defaultPriority)
     setDueDate("")
     setAssignees([])
     setLabels([])

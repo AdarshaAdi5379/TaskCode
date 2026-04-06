@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select"
 import { Circle, CheckCircle2, Loader, Plus, Search, X } from "lucide-react"
 import { useTaskContext } from "@/lib/task-context"
+import { useUserContext } from "@/lib/user-context"
 import type { Task, TaskFilter } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -31,6 +32,7 @@ const priorityStyles: Record<string, string> = {
 
 export function KanbanView({ projectId }: KanbanViewProps) {
   const { getTasksByProject, updateTask, addTask } = useTaskContext()
+  const { user } = useUserContext()
   const projectTasks = getTasksByProject(projectId)
   
   const [draggedTask, setDraggedTask] = useState<{ taskId: string; sourceStatus: string } | null>(null)
@@ -101,7 +103,7 @@ export function KanbanView({ projectId }: KanbanViewProps) {
       description: "",
       projectId,
       status,
-      priority: "medium",
+      priority: user?.settings.productivity?.defaultPriority ?? "medium",
       assignees: [],
       labels: [],
       tags: [],

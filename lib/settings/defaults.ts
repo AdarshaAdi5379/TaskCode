@@ -13,6 +13,18 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   security: {
     sessionTimeoutMinutes: 0,
   },
+  productivity: {
+    autoAssignCreator: true,
+    defaultPriority: "medium",
+    defaultDueDateOffsetDays: 0,
+    enableSubtasks: true,
+    enableRecurringTasks: false,
+    enableReminders: true,
+    calendar: {
+      firstDayOfWeek: "mon",
+      defaultView: "month",
+    },
+  },
 
   // Notifications
   notifications: {

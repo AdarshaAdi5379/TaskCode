@@ -13,6 +13,7 @@ import { useProjectContext } from "@/lib/project-context"
 import { parseNaturalLanguage, suggestPriority } from "@/lib/ai-service"
 import { Sparkles, Zap, Calendar, Tag, AlertCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { useUserContext } from "@/lib/user-context"
 
 interface QuickAddTaskModalProps {
   open: boolean
@@ -23,7 +24,9 @@ export function QuickAddTaskModal({ open, onOpenChange }: QuickAddTaskModalProps
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [projectId, setProjectId] = useState<string>("")
-  const [priority, setPriority] = useState<"low" | "medium" | "high" | "critical">("medium")
+  const { user } = useUserContext()
+  const defaultPriority = user?.settings.productivity?.defaultPriority ?? "medium"
+  const [priority, setPriority] = useState<"low" | "medium" | "high" | "critical">(defaultPriority)
   const [dueDate, setDueDate] = useState("")
   const [labels, setLabels] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -45,12 +48,12 @@ export function QuickAddTaskModal({ open, onOpenChange }: QuickAddTaskModalProps
       setTitle("")
       setDescription("")
       setProjectId("")
-      setPriority("medium")
+      setPriority(defaultPriority)
       setDueDate("")
       setLabels([])
       setDetectedInfo({})
     }
-  }, [open, projects, projectId])
+  }, [open, projects, projectId, defaultPriority])
 
   const analyzeInput = (input: string) => {
     if (!input.trim() || input.length < 5) {
