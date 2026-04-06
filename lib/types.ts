@@ -128,12 +128,34 @@ export interface ActivityLog {
 export interface UserSettings {
   theme: "light" | "dark" | "system"
   accentColor: "blue" | "purple" | "red" | "green" | "teal"
+  fontSize?: "small" | "medium" | "large"
+  density?: "compact" | "comfortable"
+  sidebar?: {
+    collapseBehavior?: "remember" | "alwaysCollapsed" | "alwaysExpanded"
+    defaultState?: "collapsed" | "expanded"
+  }
   notifications: {
     email: boolean
     push: boolean
     taskAssigned: boolean
     taskCompleted: boolean
     mentions: boolean
+    projectUpdates?: boolean
+    dueDateReminders?: boolean
+    invites?: boolean
+    weeklySummary?: boolean
+    emailMentions?: boolean
+    emailAssignments?: boolean
+    emailInvites?: boolean
+    emailWeeklySummary?: boolean
+    reminderTime?: string // HH:mm
+    dailyDigestTime?: string // HH:mm
+    quietHours?: { start: string; end: string } // HH:mm
+  }
+  defaults?: {
+    workspaceId?: string
+    projectId?: string
+    view?: "list" | "kanban" | "calendar"
   }
 }
 
@@ -145,6 +167,21 @@ export interface User {
   role: "user" | "admin"
   createdAt: Date
   settings: UserSettings
+}
+
+export type WorkspaceWorkingDay = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun"
+
+export interface WorkspaceSettings {
+  name: string
+  logoURL?: string
+  description: string
+  timezone: string
+  workingDays: WorkspaceWorkingDay[]
+  permissions: {
+    canCreateProjects: "owner" | "editor" | "viewer"
+    canInviteUsers: "owner" | "editor" | "viewer"
+    canDeleteProjects: "owner" | "editor" | "viewer"
+  }
 }
 
 export interface Notification {
@@ -184,7 +221,11 @@ export interface UserContextType {
   signUpWithPassword: (email: string, password: string, displayName?: string) => Promise<{ error?: string }>
   login: (email: string, name: string) => void
   logout: () => void | Promise<void>
+  logoutAllDevices: () => Promise<{ error?: string }>
   updateProfile: (updates: Partial<Pick<User, "displayName" | "photoURL">>) => void
+  updateEmail: (email: string) => Promise<{ error?: string }>
+  changePassword: (newPassword: string) => Promise<{ error?: string }>
+  deleteAccount: () => Promise<{ error?: string }>
   updateSettings: (settings: Partial<UserSettings>) => void
 }
 

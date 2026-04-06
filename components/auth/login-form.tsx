@@ -1,7 +1,7 @@
 "use client"
 
 import type { FormEvent } from "react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,6 +20,12 @@ export function LoginForm() {
   const [displayName, setDisplayName] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (isLoading) return
+    if (!isAuthenticated) return
+    router.replace("/")
+  }, [isAuthenticated, isLoading, router])
 
   if (!configured) {
     return (
@@ -42,8 +48,14 @@ export function LoginForm() {
   }
 
   if (!isLoading && isAuthenticated) {
-    router.replace("/")
-    return null
+    return (
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle>Redirecting…</CardTitle>
+          <CardDescription>You’re already signed in.</CardDescription>
+        </CardHeader>
+      </Card>
+    )
   }
 
   const onSubmit = async (e: FormEvent) => {

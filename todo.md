@@ -1,243 +1,346 @@
-# TaskZen Implementation Roadmap
+# TaskCode — Settings Feature TODO (Detailed)
 
-## Phase 1: Core Foundation (Week 1-2) ✅ COMPLETED
+This file tracks ONLY the Settings feature (sidebar + schema + loader + all sections), in the exact implementation order you specified.
 
-### 1.1 Project & Task Data Models
-- [x] Update Project interface to include: `createdAt`, `updatedAt`, `isArchived`, `memberIds`, `ownerId`, `settings`
-- [x] Update Task interface to include: `parentId` (for sub-tasks), `subtasks[]`, `isSoftDeleted`, `deletedAt`, `snoozedUntil`, `reminder`, `isCompleted`, `completedAt`, `completedBy`, `assignedBy`, `comments[]`, `attachments[]`, `tags[]`
-- [x] Create SubTask interface with: `id`, `title`, `isCompleted`, `completedAt`
-- [x] Create Comment interface with: `id`, `userId`, `content`, `createdAt`, `mentions[]`
-- [x] Create ActivityLog interface for tracking changes
+## Current decisions (important)
+- Single workspace for now (no workspace entity). Workspace settings apply to `workspaceId = "default"` and are stored locally.
+- Settings are stored locally (localStorage) with safe default fallbacks and deep-merge updates to prevent accidental overwrites.
+- User settings keys:
+  - `taskzen-user-settings:<userId>` (per-user settings payload)
+  - `taskzen-workspace-settings:default` (single workspace settings payload)
 
-### 1.2 Enhanced Task Context
-- [x] Add `createSubTask(parentTaskId, subtask)` function
-- [x] Add `updateSubTask(parentTaskId, subtaskId, updates)` function
-- [x] Add `deleteSubTask(parentTaskId, subtaskId)` function
-- [x] Add `softDeleteTask(taskId)` function
-- [x] Add `restoreTask(taskId)` function
-- [x] Add `permanentDeleteTask(taskId)` function
-- [x] Add `snoozeTask(taskId, untilDate)` function
-- [x] Add `assignTask(taskId, userIds)` function
-- [x] Add `addComment(taskId, comment)` function
-- [x] Implement parent-child status sync logic (when all subtasks complete → parent done, when parent reopened → children can be uncompleted)
-- [x] Implement soft-delete cleanup job (mark tasks older than 30 days for permanent deletion)
-
-### 1.3 Enhanced Project Context
-- [x] Add `getProjectsByMember(userId)` function
-- [x] Add `inviteMember(projectId, email)` function
-- [x] Add `removeMember(projectId, userId)` function
-- [x] Add `updateProjectSettings(projectId, settings)` function
-- [x] Add project-level permissions (owner, admin, member)
+## Recommended implementation order (follow this)
+1. Settings layout (sidebar + routing)
+2. Profile settings
+3. Appearance settings
+4. Notification settings
+5. Workspace settings
+6. Project settings
+7. Security settings
+8. Data settings
+9. Productivity settings
+10. Integration settings
+11. Admin settings
+12. UX polish
+13. Performance optimization
+14. Testing
 
 ---
 
-## Phase 2: Task Views Enhancement (Week 2-3)
+# Phase 1 — Settings Foundation ✅ COMPLETED
 
-### 2.1 List View Improvements
-- [ ] Add collapsible subtasks display
-- [ ] Add inline editing for task title/description
-- [ ] Add quick actions (complete, delete, assign) on hover
-- [ ] Add sorting options (by priority, due date, created date, status)
-- [ ] Add filtering (by assignee, priority, due date, status)
-- [ ] Add search within project tasks
+## 1) Create Settings navigation structure ✅
+- [x] Create main Settings page (`/settings`) with redirect to first section.
+  - Details: `/settings` redirects to `/settings/profile`.
+- [x] Add left sidebar navigation (desktop) with the required sections.
+  - Details: Profile, Appearance, Notifications, Workspace, Projects, Security, Data, Productivity, Integrations, Admin (admin only).
+  - Details: Admin is hidden unless the user is admin.
+- [x] Add right-side content panel.
+  - Details: fixed shell with content area.
+- [x] Add routing for each settings category.
+  - Details: `/settings/<section>` pages exist for all sections.
+- [x] Highlight active settings tab.
+  - Details: active state based on current pathname.
+- [x] Make settings responsive for mobile.
+  - Details: sidebar turns into a section Select dropdown on mobile.
+- [x] Add loading skeleton while settings load/hydrate.
+  - Details: skeleton appears in the content panel while user state is loading.
+- [x] Add main app sidebar entry to open Settings.
 
-### 2.2 Kanban View Improvements  
-- [ ] Add drag-and-drop between columns with visual feedback
-- [ ] Add task count badges per column
-- [ ] Add "Add task" button in each column
-- [ ] Add quick status change on task card click
-- [ ] Add filter/search within kanban board
+## 2) Define settings data structure ✅
+- [x] Decide where settings live (scoped storage model).
+  - User-level settings:
+    - Appearance: theme, accent color, font size, density
+    - Notifications: toggles + reminder/digest times + quiet hours
+    - Defaults: default project + default view
+  - Workspace-level settings:
+    - Single workspace `"default"` for now
+    - Workspace info + permissions stored locally (future: real workspace table)
+  - Project-level settings:
+    - Already exists via `Project.settings` (default priority/status + auto-complete subtasks)
+- [x] Define default values.
+  - Details: centralized defaults live in `lib/settings/defaults.ts`.
+- [x] Add fallback behavior if settings are missing.
+  - Details: any partial/missing stored settings are deep-merged into defaults.
 
-### 2.3 Calendar View Improvements
-- [ ] Add month/week/day toggle views
-- [ ] Add drag-and-drop to reschedule tasks
-- [ ] Add task preview on date hover
-- [ ] Add color-coding by project/priority
-- [ ] Add today indicator and navigation
-
-### 2.4 Dashboard/Analytics View
-- [ ] Add workload distribution chart (tasks per assignee)
-- [ ] Add completion trend chart (tasks completed over time)
-- [ ] Add overdue tasks summary
-- [ ] Add "My Tasks" section (assigned to current user)
-- [ ] Add productivity streaks (consecutive days with completed tasks)
-- [ ] Add project progress overview
-
----
-
-## Phase 3: User & Collaboration (Week 3-4)
-
-### 3.1 User Management
-- [ ] Create User interface: `id`, `email`, `displayName`, `photoURL`, `role`, `createdAt`, `settings`
-- [ ] Implement Firebase Authentication (Google Sign-In)
-- [ ] Create user context with profile management
-- [ ] Add user avatar and profile settings
-
-### 3.2 Project Collaboration
-- [ ] Add "Invite Member" modal with email input
-- [ ] Add member list with role badges (owner, admin, member)
-- [ ] Add remove member functionality
-- [ ] Add project sharing via link
-- [ ] Add role-based UI (admins see manage options)
-
-### 3.3 Comments & Mentions
-- [ ] Add comments section in task detail view
-- [ ] Implement @mention parsing with autocomplete
-- [ ] Add mention notifications
-- [ ] Add comment editing/deletion
-
-### 3.4 Activity Feed
-- [ ] Add activity log per project
-- [ ] Track: task created, updated, completed, assigned, commented
-- [ ] Display recent activities on project page
+## 3) Implement settings loader system ✅
+- [x] Load user settings on login/hydration.
+  - Details: `UserProvider` merges persisted settings into defaults.
+- [x] Cache settings locally.
+  - Details: user settings stored under `taskzen-user-settings:<userId>`.
+- [x] Update UI when settings change.
+  - Details: context updates trigger re-render; accent + theme apply immediately.
+- [x] Prevent overwriting existing settings accidentally.
+  - Details: deep-merge is used for updates (nested patches do not wipe sibling keys).
 
 ---
 
-## Phase 4: Notifications & Real-Time (Week 4)
+# Phase 2 — Profile Settings ✅ COMPLETED
 
-### 4.1 Unified Inbox
-- [ ] Create Inbox context and storage
-- [ ] Add notification types: assignment, mention, completion, comment, project_invite
-- [ ] Add mark as read/unread
-- [ ] Add notification filtering (by type, project)
-- [ ] Add clear all functionality
+## Profile information ✅
+- [x] Show user name.
+- [x] Show email.
+- [x] Show profile picture.
+  - Details: supports a URL and local upload preview (stored as Data URL in local mode).
+- [x] Allow updating name.
+- [x] Allow updating profile picture.
+- [x] Allow updating email.
+  - Details:
+    - Local mode: updates immediately.
+    - Supabase mode: uses `supabase.auth.updateUser({ email })` (may require email confirmation).
+- [x] Validate inputs before saving.
+  - Details:
+    - Name required (non-empty).
+    - Email required + basic email format validation.
+- [x] UX feedback for save.
+  - Details: toast success/error messages.
 
-### 4.2 Real-Time Updates
-- [ ] Implement Firestore listeners for tasks
-- [ ] Implement Firestore listeners for projects
-- [ ] Implement Firestore listeners for notifications
-- [ ] Add optimistic UI updates
-- [ ] Handle connection status indicator
+## Account controls ✅
+- [x] Add password change feature.
+  - Details:
+    - Supabase mode: uses `supabase.auth.updateUser({ password })`.
+    - Local mode: no-op (still available in UI but will succeed trivially).
+- [x] Add logout from all devices.
+  - Details:
+    - Supabase mode: attempts `signOut({ scope: "global" })`, falls back to normal sign-out.
+    - Local mode: clears local user.
+- [x] Add account deletion option.
+  - Details:
+    - Local mode: clears local user + stored settings.
+    - Supabase mode: blocked with a clear error message (requires server-side admin flow).
+- [x] Add confirmation dialogs.
 
----
-
-## Phase 5: Theming & UI Polish (Week 5)
-
-### 5.1 Theme System
-- [ ] Add accent color options: Zen (blue), Twilight (purple), Crimson (red), Forest (green), Ocean (teal)
-- [ ] Store theme preference in user settings
-- [ ] Add theme switcher in header
-- [ ] Persist theme choice across sessions
-
-### 5.2 Responsive Design
-- [ ] Optimize mobile layout (single column, collapsible sidebar)
-- [ ] Add mobile "Quick Add" floating button
-- [ ] Add touch-friendly interactions
-- [ ] Optimize tablet layout (condensed sidebar)
-
-### 5.3 UI Enhancements
-- [ ] Add loading states and skeletons
-- [ ] Add empty states with helpful CTAs
-- [ ] Add toast notifications for actions
-- [ ] Add confirmation dialogs for destructive actions
-- [ ] Add keyboard shortcuts
-
----
-
-## Phase 6: Billing & Subscriptions (Week 6)
-
-### 6.1 Subscription Plans
-- [ ] Define plans: Free, Pro ($9.99/mo), Enterprise (custom)
-- [ ] Pro features: unlimited projects, calendar sync, advanced analytics, priority support
-- [ ] Enterprise features: custom branding, SSO, dedicated support
-
-### 6.2 Billing Integration
-- [ ] Integrate Razorpay checkout
-- [ ] Handle subscription webhooks
-- [ ] Add billing history view
-- [ ] Add plan upgrade/downgrade flow
-- [ ] Add subscription cancellation
-
-### 6.3 Feature Flagging
-- [ ] Create feature flags system
-- [ ] Implement plan-based access control
-- [ ] Add admin override capability
-- [ ] Add developer whitelist
+## Default preferences ✅
+- [x] Select default workspace.
+  - Details: single workspace only (read-only “My Workspace” field).
+- [x] Select default project.
+  - Details: uses current project list, stores in `user.settings.defaults.projectId`.
+- [x] Select default view (List/Kanban/Calendar).
+  - Details: stores in `user.settings.defaults.view`.
 
 ---
 
-## Phase 7: AI & Automation (Week 7)
+# Phase 3 — Appearance Settings ✅ COMPLETED
 
-### 7.1 AI Features
-- [ ] Implement natural language task creation (e.g., "Finish report by Friday")
-- [ ] Parse dates, priorities from text
-- [ ] Add AI-powered priority scoring algorithm
+## Theme controls ✅
+- [x] Add Light mode.
+- [x] Add Dark mode.
+- [x] Add System mode.
 
-### 7.2 Automation
-- [ ] Create rules engine scaffold
-- [ ] Add scheduled function for priority recalculation
-- [ ] Implement webhook triggers structure
+## UI customization ✅
+- [x] Add accent color selector (same style as old modal).
+- [x] Add font size options (Small/Medium/Large).
+  - Details: applied globally via `html[data-font-size]` so the entire UI scales.
 
-### 7.3 Integrations (Scaffold)
-- [ ] Google Calendar sync for Pro users (API integration)
-- [ ] Slack notification integration
-- [ ] GitHub webhook handler
-- [ ] Generic webhook API endpoints
+## Layout options ✅
+- [x] Density mode (Compact/Comfortable).
+  - Details: stored + applied (currently minimal visible cue; full spacing compaction can be expanded later).
+- [x] Sidebar collapse behavior (Remember/Always collapsed/Always expanded).
+  - Details: stored (wiring behavior into main sidebar comes later when we add actual collapse UI).
+- [x] Sidebar default state (Collapsed/Expanded).
+  - Details: stored.
 
----
+## Persistence ✅
+- [x] Save theme preference.
+- [x] Apply theme immediately.
+- [x] Restore theme on reload.
 
-## Phase 8: Admin & Security (Week 8)
-
-### 8.1 Admin Panel
-- [ ] Create admin dashboard
-- [ ] User management (view, deactivate, role assignment)
-- [ ] Audit log viewer
-- [ ] System health metrics
-
-### 8.2 Security
-- [ ] Implement RBAC with Firebase custom claims
-- [ ] Create Firestore security rules
-- [ ] Add rate limiting
-- [ ] Implement CSRF protection
-
-### 8.3 Testing
-- [ ] Set up Jest testing framework
-- [ ] Write unit tests for contexts and utilities
-- [ ] Write component tests
-- [ ] Set up Firebase Emulator for integration tests
+## Replace old appearance UI ✅
+- [x] Remove Appearance tab from the old profile modal and replace with a link/button to `/settings/appearance`.
 
 ---
 
-## Implementation Notes
+# Phase 4 — Notification Settings ✅ COMPLETED
 
-### Current Stack
-- Next.js 15 (App Router)
-- React 19
-- TypeScript
-- Tailwind CSS v4
-- Radix UI Components
-- Firebase (Auth, Firestore) - *to be added*
-- Razorpay - *to be added*
+## In-app notifications ✅
+- [x] Toggles UI for:
+  - [x] Task assigned to you
+  - [x] Mentioned in comment
+  - [x] Task completed
+  - [x] Project updates
+  - [x] Due date reminders
+- [x] Ensure disabled notifications are not sent (in-app).
+  - Details: `NotificationProvider.addNotification()` checks user prefs and drops notifications when disabled.
 
-### Aesthetic Guidelines (Maintain These!)
-- Clean, modern design with ample whitespace
-- Consistent use of Card, Button, Badge components from Radix UI
-- Smooth transitions and hover effects
-- Proper dark/light mode support
-- Mobile-first responsive approach
-- Lucide React icons throughout
+## Email notifications (schema + UI only for now) ✅
+- [x] Master email switch.
+- [x] Toggles UI for:
+  - [x] Mentions
+  - [x] Assignments
+  - [x] Invites
+  - [x] Weekly summary
+- [ ] Email delivery implementation.
+  - Details: later when backend/email service exists.
 
-### File Structure to Maintain
-```
-/app
-  /layout.tsx          # Root layout with providers
-  /page.tsx            # Dashboard
-  /projects/[id]/page.tsx  # Project detail
-  
-/components
-  /layout/             # Header, Sidebar, MainLayout
-  /tasks/              # TaskList, KanbanView, CalendarView, TaskModal
-  /dashboard/          # KPICards, TaskChart, TeamActivity
-  /modals/             # QuickAddProject, QuickAddTask
-  
-/lib
-  /types.ts            # TypeScript interfaces
-  /task-context.tsx    # Task state management
-  /project-context.tsx # Project state management
-  /utils.ts            # Utility functions
-```
+## Reminder preferences ✅
+- [x] Default reminder time.
+- [x] Daily digest time.
+- [x] Quiet hours start/end.
 
-### Priority Order for Implementation
+## Behavior ✅
+- [x] Save notification preferences.
+- [x] Apply settings immediately.
+
+## Replace old notifications UI ✅
+- [x] Keep simple toggles in the profile modal, add “Advanced settings” link to `/settings/notifications`.
+
+---
+
+# Phase 5 — Workspace Settings (single workspace `"default"`) ⏳ NEXT
+
+## Workspace info
+- [ ] Workspace name
+- [ ] Workspace logo
+- [ ] Description
+- [ ] Timezone
+- [ ] Working days
+- [ ] Persistence behavior
+  - Details: store under `taskzen-workspace-settings:default`.
+
+## Members management (future; requires a real workspace/team model)
+- [ ] Member list view
+- [ ] Invite member button
+- [ ] Remove member button
+- [ ] Role assignment (Owner/Editor/Viewer)
+
+## Permissions (future; requires real roles/enforcement)
+- [ ] Who can create projects
+- [ ] Who can invite users
+- [ ] Who can delete projects
+
+---
+
+# Phase 6 — Project Settings ⏳
+
+## Project info
+- [ ] Project name
+- [ ] Description
+- [ ] Project color
+- [ ] Project icon
+
+## Workflow settings
+- [ ] Customize task statuses (Todo/In Progress/Review/Done)
+  - Details: will require expanding Task.status beyond the current fixed union OR adding per-project workflow mapping.
+
+## Labels management
+- [ ] Create label
+- [ ] Delete label
+- [ ] Assign colors to labels
+
+---
+
+# Phase 7 — Security Settings ⏳
+
+## Login security
+- [ ] Show active sessions
+- [ ] Logout from other devices
+- [ ] Password change
+
+## Privacy controls
+- [ ] Data export option
+- [ ] Account deletion option
+- [ ] Session timeout control
+
+## Device management
+- [ ] Device list
+- [ ] Revoke device access
+
+---
+
+# Phase 8 — Data Management Settings ⏳
+
+## Export tools
+- [ ] Export tasks to CSV
+- [ ] Export tasks to JSON
+- [ ] Export activity logs
+
+## Import tools
+- [ ] Import tasks from CSV
+- [ ] Import tasks from Excel
+
+## Trash settings
+- [ ] Trash retention period (7 / 30 / 60 days)
+
+---
+
+# Phase 9 — Productivity Settings ⏳
+
+## Default task behavior
+- [ ] Auto-assign creator
+- [ ] Default priority
+- [ ] Default due date offset
+
+## Task settings
+- [ ] Enable sub-tasks toggle
+- [ ] Enable recurring tasks toggle
+- [ ] Enable reminders toggle
+
+## Calendar settings
+- [ ] First day of week
+- [ ] Default calendar view
+
+---
+
+# Phase 10 — Integration Settings ⏳
+
+## External connections (placeholders)
+- [ ] Google Calendar (Connect/Disconnect/Sync status)
+- [ ] Slack (Connect/Disconnect/Sync status)
+- [ ] GitHub (Connect/Disconnect/Sync status)
+- [ ] Jira (Connect/Disconnect/Sync status)
+
+---
+
+# Phase 11 — Admin Settings (Admin only) ⏳
+
+## User management
+- [ ] View all users
+- [ ] Promote user
+- [ ] Demote user
+- [ ] Suspend user
+
+## System logs
+- [ ] Activity logs viewer
+- [ ] User login logs
+
+## Feature controls
+- [ ] Enable/disable features globally
+
+---
+
+# Phase 12 — Settings UX improvements ⏳
+
+## Feedback
+- [x] Save success message (toast) — Profile/Appearance/Notifications
+- [x] Error message display (inline + toast) — Profile
+- [ ] Inline validation feedback for all sections
+
+## Safety
+- [x] Confirmation dialogs — destructive Profile actions
+- [ ] Undo support (optional)
+
+## Navigation
+- [ ] Search inside settings
+- [ ] Breadcrumb navigation
+
+---
+
+# Phase 13 — Settings performance optimization ⏳
+- [ ] Lazy load settings sections (route-level code splitting + per-route `loading.tsx`)
+- [ ] Cache settings locally (already done; extend to more scopes)
+- [ ] Avoid re-fetching unchanged settings
+- [ ] Batch updates where possible
+- [ ] Debounce frequent updates (e.g., text inputs)
+
+---
+
+# Phase 14 — Settings testing ⏳
+- [ ] Settings save correctly
+- [ ] Settings reload correctly
+- [ ] Default values apply
+- [ ] Permissions enforced
+- [ ] Admin restrictions work
+- [ ] UI updates immediately
 1. Core Data Models & Context (Phase 1)
 2. Enhanced Views (Phase 2)  
 3. User & Collaboration (Phase 3)

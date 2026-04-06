@@ -14,6 +14,8 @@ import { ToastProvider } from "@/lib/toast-context"
 import { BillingProvider } from "@/lib/billing-context"
 import { FeatureFlagsProvider } from "@/lib/feature-flags-context"
 import { AdminProvider } from "@/lib/admin-context"
+import { SettingsProvider } from "@/lib/settings/settings-context"
+import { UIPreferencesApplier } from "@/lib/settings/ui-preferences-applier"
 
 export const metadata: Metadata = {
   title: "TaskZen - Project Management",
@@ -48,29 +50,32 @@ export default function RootLayout({
       <body className={`font-sans antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <UserProvider>
-            <BillingProvider>
-              <FeatureFlagsProvider>
-                <AdminProvider>
-                  <ConnectionProvider>
-                  <ToastProvider>
-                    <AccentThemeProvider>
-                      <NotificationProvider>
-                          <ProjectProvider>
-                            <SprintProvider>
-                              <TaskProvider>
-                                {children}
-                                <Analytics />
-                                <ConnectionStatus />
-                              </TaskProvider>
-                            </SprintProvider>
-                          </ProjectProvider>
-                      </NotificationProvider>
-                    </AccentThemeProvider>
-                  </ToastProvider>
-                </ConnectionProvider>
-                </AdminProvider>
-              </FeatureFlagsProvider>
-            </BillingProvider>
+            <SettingsProvider>
+              <UIPreferencesApplier />
+              <BillingProvider>
+                <FeatureFlagsProvider>
+                  <AdminProvider>
+                    <ConnectionProvider>
+                    <ToastProvider>
+                      <AccentThemeProvider>
+                        <NotificationProvider>
+                            <ProjectProvider>
+                              <SprintProvider>
+                                <TaskProvider>
+                                  {children}
+                                  <Analytics />
+                                  <ConnectionStatus />
+                                </TaskProvider>
+                              </SprintProvider>
+                            </ProjectProvider>
+                        </NotificationProvider>
+                      </AccentThemeProvider>
+                    </ToastProvider>
+                  </ConnectionProvider>
+                  </AdminProvider>
+                </FeatureFlagsProvider>
+              </BillingProvider>
+            </SettingsProvider>
           </UserProvider>
         </ThemeProvider>
       </body>

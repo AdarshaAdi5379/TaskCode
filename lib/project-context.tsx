@@ -2,18 +2,13 @@
 
 import type React from "react"
 import { createContext, useContext, useMemo, useState, useEffect, useCallback } from "react"
-import type { Project, ProjectContextType, ProjectMember, ProjectSettings } from "./types"
+import type { Project, ProjectContextType, ProjectMember } from "./types"
 import { useUserContext } from "./user-context"
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "./supabase/client"
 import { deserializeProject, serializeProject } from "./supabase/serializers"
+import { DEFAULT_PROJECT_SETTINGS } from "@/lib/settings/defaults"
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined)
-
-const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
-  defaultPriority: "medium",
-  defaultStatus: "todo",
-  autoCompleteSubtasks: true,
-}
 
 const FALLBACK_DEFAULT_OWNER_ID = "current-user"
 

@@ -4,18 +4,7 @@ import type React from "react"
 import { createContext, useContext, useMemo, useState, useEffect, useCallback } from "react"
 import type { User, UserContextType, UserSettings } from "./types"
 import { getSupabaseBrowserClient, isSupabaseConfigured } from "./supabase/client"
-
-const DEFAULT_USER_SETTINGS: UserSettings = {
-  theme: "system",
-  accentColor: "blue",
-  notifications: {
-    email: true,
-    push: true,
-    taskAssigned: true,
-    taskCompleted: true,
-    mentions: true,
-  },
-}
+import { deepMerge, mergeUserSettings, DEFAULT_USER_SETTINGS } from "@/lib/settings/defaults"
 
 const FALLBACK_DEFAULT_USER_ID = "current-user"
 const FALLBACK_DEFAULT_USER_EMAIL = "user@example.com"
@@ -38,6 +27,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           setUser({
             ...parsed,
             createdAt: new Date(parsed.createdAt),
+            settings: mergeUserSettings(parsed.settings),
           })
         } catch (e) {
           console.error("[TaskZen] Failed to load user from localStorage:", e)
@@ -151,17 +141,79 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return supabase.auth.signOut()
   }, [useSupabase])
 
+  const logoutAllDevices = useCallback(async () => {
+    if (!useSupabase) {
+      setUser(null)
+      localStorage.removeItem("taskzen-user")
+      return {}
+    }
+
+    const supabase = getSupabaseBrowserClient()
+    // Prefer global sign-out when supported.
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.auth as any).signOut({ scope: "global" })
+      if (error) return { error: error.message }
+      return {}
+    } catch {
+      const { error } = await supabase.auth.signOut()
+      if (error) return { error: error.message }
+      return {}
+    }
+  }, [useSupabase])
+
   const updateProfile = useCallback((updates: Partial<Pick<User, "displayName" | "photoURL">>) => {
     setUser((prev) => prev ? { ...prev, ...updates } : null)
   }, [])
 
+  const updateEmail = useCallback(async (email: string) => {
+    if (!useSupabase) {
+      setUser((prev) => (prev ? { ...prev, email } : prev))
+      return {}
+    }
+
+    const supabase = getSupabaseBrowserClient()
+    const { error } = await supabase.auth.updateUser({ email })
+    if (error) return { error: error.message }
+    setUser((prev) => (prev ? { ...prev, email } : prev))
+    return {}
+  }, [useSupabase])
+
+  const changePassword = useCallback(async (newPassword: string) => {
+    if (!useSupabase) return {}
+    const supabase = getSupabaseBrowserClient()
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) return { error: error.message }
+    return {}
+  }, [useSupabase])
+
+  const deleteAccount = useCallback(async () => {
+    if (!useSupabase) {
+      const id = user?.id
+      setUser(null)
+      localStorage.removeItem("taskzen-user")
+      if (id) {
+        try {
+          localStorage.removeItem(`taskzen-user-settings:${id}`)
+        } catch {
+          // ignore
+        }
+      }
+      return {}
+    }
+
+    // Client-side deletion isn't supported without a server-side admin flow.
+    return { error: "Account deletion requires a server-side flow." }
+  }, [useSupabase, user?.id])
+
   const updateSettings = useCallback((settings: Partial<UserSettings>) => {
     setUser((prev) => {
       if (!prev) return null
-      const next = { ...prev, settings: { ...prev.settings, ...settings } }
+      const nextSettings = deepMerge(prev.settings, settings)
+      const next = { ...prev, settings: nextSettings }
       if (useSupabase) {
         try {
-          localStorage.setItem(`taskzen-user-settings:${prev.id}`, JSON.stringify(next.settings))
+          localStorage.setItem(`taskzen-user-settings:${prev.id}`, JSON.stringify(nextSettings))
         } catch {
           // ignore
         }
@@ -179,7 +231,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       signUpWithPassword,
       login,
       logout,
+      logoutAllDevices,
       updateProfile,
+      updateEmail,
+      changePassword,
+      deleteAccount,
       updateSettings,
     }}>
       {children}
@@ -211,14 +267,15 @@ function mapSupabaseUserToUser(supabaseUser: {
 
   const settingsKey = `taskzen-user-settings:${supabaseUser.id}`
   const storedSettings = typeof window !== "undefined" ? localStorage.getItem(settingsKey) : null
-  let settings = DEFAULT_USER_SETTINGS
+  let stored: Partial<UserSettings> | null = null
   if (storedSettings) {
     try {
-      settings = { ...DEFAULT_USER_SETTINGS, ...JSON.parse(storedSettings) }
+      stored = JSON.parse(storedSettings)
     } catch {
-      // ignore
+      stored = null
     }
   }
+  const settings = mergeUserSettings(stored)
 
   return {
     id: supabaseUser.id,

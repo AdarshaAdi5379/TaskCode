@@ -8,25 +8,17 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useUserContext } from "@/lib/user-context"
-import { useTheme } from "next-themes"
-import { User, Settings, Palette, Bell, LogOut } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { User, Bell, LogOut, SlidersHorizontal } from "lucide-react"
 
 interface UserProfileModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-const accentColors = [
-  { name: "Zen Blue", value: "blue", color: "bg-blue-500" },
-  { name: "Twilight Purple", value: "purple", color: "bg-purple-500" },
-  { name: "Crimson Red", value: "red", color: "bg-red-500" },
-  { name: "Forest Green", value: "green", color: "bg-green-500" },
-  { name: "Ocean Teal", value: "teal", color: "bg-teal-500" },
-]
-
 export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) {
   const { user, updateProfile, updateSettings, logout } = useUserContext()
-  const { setTheme } = useTheme()
+  const router = useRouter()
   const [displayName, setDisplayName] = useState(user?.displayName || "")
   const [email, setEmail] = useState(user?.email || "")
   const [activeTab, setActiveTab] = useState("profile")
@@ -36,15 +28,6 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
   const handleSaveProfile = () => {
     updateProfile({ displayName })
     onOpenChange(false)
-  }
-
-  const handleThemeChange = (theme: "light" | "dark" | "system") => {
-    setTheme(theme)
-    updateSettings({ theme })
-  }
-
-  const handleAccentChange = (accentColor: "blue" | "purple" | "red" | "green" | "teal") => {
-    updateSettings({ accentColor })
   }
 
   const handleNotificationChange = (key: keyof typeof user.settings.notifications) => {
@@ -59,6 +42,16 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
   const handleLogout = () => {
     logout()
     onOpenChange(false)
+  }
+
+  const openAppearanceSettings = () => {
+    onOpenChange(false)
+    router.push("/settings/appearance")
+  }
+
+  const openNotificationSettings = () => {
+    onOpenChange(false)
+    router.push("/settings/notifications")
   }
 
   const getInitials = (name: string) => {
@@ -79,14 +72,10 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="profile" className="gap-1">
               <User className="h-4 w-4" />
               Profile
-            </TabsTrigger>
-            <TabsTrigger value="appearance" className="gap-1">
-              <Palette className="h-4 w-4" />
-              Appearance
             </TabsTrigger>
             <TabsTrigger value="notifications" className="gap-1">
               <Bell className="h-4 w-4" />
@@ -134,45 +123,13 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
                 <LogOut className="h-4 w-4" />
                 Logout
               </Button>
-              <Button onClick={handleSaveProfile}>Save Changes</Button>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="appearance" className="space-y-4">
-            <div className="space-y-3">
-              <Label>Theme</Label>
               <div className="flex gap-2">
-                {(["light", "dark", "system"] as const).map((theme) => (
-                  <Button
-                    key={theme}
-                    variant={user.settings.theme === theme ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleThemeChange(theme)}
-                    className="capitalize"
-                  >
-                    {theme}
-                  </Button>
-                ))}
+                <Button variant="outline" onClick={openAppearanceSettings} className="gap-1">
+                  <SlidersHorizontal className="h-4 w-4" />
+                  Appearance
+                </Button>
+                <Button onClick={handleSaveProfile}>Save</Button>
               </div>
-            </div>
-
-            <div className="space-y-3">
-              <Label>Accent Color</Label>
-              <div className="flex gap-2">
-                {accentColors.map((accent) => (
-                  <button
-                    key={accent.value}
-                    onClick={() => handleAccentChange(accent.value as "blue" | "purple" | "red" | "green" | "teal")}
-                    className={`w-8 h-8 rounded-full ${accent.color} transition-transform hover:scale-110 ${
-                      user.settings.accentColor === accent.value ? "ring-2 ring-offset-2 ring-primary" : ""
-                    }`}
-                    title={accent.name}
-                  />
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Current: {accentColors.find((a) => a.value === user.settings.accentColor)?.name}
-              </p>
             </div>
           </TabsContent>
 
@@ -219,6 +176,13 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
                   {user.settings.notifications.mentions ? "On" : "Off"}
                 </Button>
               </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <Button variant="outline" onClick={openNotificationSettings} className="gap-1">
+                <Bell className="h-4 w-4" />
+                Advanced settings
+              </Button>
             </div>
           </TabsContent>
         </Tabs>

@@ -3,6 +3,7 @@
 import type React from "react"
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react"
 import type { Notification, NotificationContextType, NotificationFilter } from "./types"
+import { useUserContext } from "./user-context"
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
 
@@ -10,6 +11,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [isHydrated, setIsHydrated] = useState(false)
   const [filter, setFilter] = useState<NotificationFilter>({})
+  const { user } = useUserContext()
 
   useEffect(() => {
     const stored = localStorage.getItem("taskzen-notifications")
@@ -48,6 +50,18 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [notifications, filter])
 
   const addNotification = useCallback((notificationData: Omit<Notification, "id" | "isRead" | "createdAt">) => {
+    const prefs = user?.settings.notifications
+    if (prefs) {
+      const allowByType: Partial<Record<Notification["type"], boolean>> = {
+        task_assigned: prefs.taskAssigned,
+        task_completed: prefs.taskCompleted,
+        mention: prefs.mentions,
+        project_invite: prefs.invites ?? true,
+      }
+      const allowed = allowByType[notificationData.type]
+      if (allowed === false) return
+    }
+
     const notification: Notification = {
       ...notificationData,
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
@@ -55,7 +69,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       createdAt: new Date(),
     }
     setNotifications((prev) => [notification, ...prev])
-  }, [])
+  }, [user?.settings.notifications])
 
   const markAsRead = useCallback((id: string) => {
     setNotifications((prev) =>
